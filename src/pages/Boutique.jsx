@@ -17,9 +17,10 @@ export const new_price = (price, discount) => {
 export const Boutique = ({_category}) => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL; 
   const [showFilters, setShowFilters] = useState(true);
+  const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
   const user = useSelector((state) => state.user.user);
-  const cart = useSelector((state) => state.cart.cart);
+  const cart = useSelector((state) => state.cart.items);
   const [genderClicked, setGenderClicked] = useState(false);
   const [priceClicked, setPriceClicked] = useState(false);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -77,11 +78,29 @@ export const Boutique = ({_category}) => {
                         };
                     })
                 );
-
-                // Dispatch pour mettre à jour le panier dans Redux
                 dispatch({ type: 'cart/updateCart', payload: items });
             })
             .catch((error) => console.error("Error fetching data:", error));
+
+        axios.post(`${apiBaseUrl}api/wishlist/`, { user_id: user?.id })
+            .then((response) => {
+                const wishlistData = response.data;
+                console.log("User ", user?.id, " wishlist data: ", wishlistData);
+                // Récupérer les détails de chaque variante
+                const items = Promise.all(
+                    wishlistData.map(async (item) => {
+                        const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
+                        const sizeResponse = await (await axios.get(`${apiBaseUrl}api/products/size/${item.size}/`))
+                        return {
+                            id: item.id,
+                            variant: variantResponse.data, // Stocker la variante entière
+                            size: sizeResponse.data, // Stocker la taille entière
+                        };
+                    })
+                );
+                dispatch({ type: 'wishlist/updateWishlist', payload: items });
+            })
+            .catch((error) => console.error("Error fetching data:", error));  
     }
 }, [user]);
 

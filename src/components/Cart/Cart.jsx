@@ -52,7 +52,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
           text: "Are you sure ? You won't be able to revert this!",
           icon: 'error',
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
+          confirmButtonColor: '#fea928',
           cancelButtonColor: '#d33',
           confirmButtonText: 'Yes, clear it!',
         }).then((result) => {
@@ -82,7 +82,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
             text: "Are you sure ? You won't be able to revert this!",
             icon: 'error',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: '#fea928',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, remove it!',
         }).then((result) => {
@@ -146,7 +146,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
 
             // Dispatch pour mettre à jour le panier dans Redux
             dispatch({ type: 'cart/updateCart', payload: items });
-          console.log("Cart fetched successfully:", response.data);
+          console.log("Cart fetched successfully:", cart);
 
         } catch (error) {
           console.error("Error fetching cart data:", error);

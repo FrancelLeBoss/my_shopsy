@@ -11,7 +11,7 @@ import { BiStar } from 'react-icons/bi';
 import { formatDistanceToNow } from 'date-fns';
 import Swal from 'sweetalert2'
 
-import { fr } from 'date-fns/locale'; // Importez la locale française
+import { fr, se } from 'date-fns/locale'; // Importez la locale française
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
@@ -50,6 +50,7 @@ const Product = () => {
     const [product, setProduct] = useState(null);
     const [displayReviews, setDisplayReviews] = useState(false);
     const [category, setCategory] = useState(null);
+    const [productWished, setProductWished] = useState(false);
     const selectedVariant = (vId) => {
         return product?.variants?.find((variant) => variant.id === parseInt(vId)) || product?.variants[0];
     };
@@ -63,6 +64,22 @@ const Product = () => {
                 setProduct(response.data);
             })
             .catch(error => console.error("Error fetching data:", error));
+
+        // Vérifier si le produit est déjà dans la wishlist
+        if (user && variant){
+            axios.post(`${apiBaseUrl}api/wishlist/already_exists/`, {user_id: user.id, variant_id: variantId}, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`
+                }
+            })
+            .then(response => {
+                if (response.data.exists) {
+                    setProductWished(true);
+                } else {
+                    setProductWished(false);
+                }
+            })
+        }
         
     }, [productId, variantId]);
 
@@ -207,7 +224,66 @@ const Product = () => {
                 console.error("Error adding product to cart:", error.response.data);
             });
         } else {
-            console.log("User not logged in");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Please log in to add items to your cart',
+                showConfirmButton: true,
+                confirmButtonText: 'Get it!',
+                confirmButtonColor: '#fea928',
+    
+            });
+        }
+    }
+
+    const handleAddToWishlist = () => {
+        if (user) {
+            axios.post(`${apiBaseUrl}api/wishlist/add/`, {
+                user_id: user.id,
+                variant_id: variantId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`
+                }
+            })
+            .then(response => {
+                console.log("Product added to wishlist:", response?.data);
+                // Afficher une notification de succès
+
+                dispatch({ type: 'wishlist/addToWishlist', payload: response?.data?.wishlist_item?.variant });
+            })
+            .catch(error => {
+                console.error("Error adding product to wishlist:", error.response.data);
+            });
+        }
+    }
+
+    const handleRemoveFromWishlist = () => {
+        let itemDeleted
+        if (user) {
+            axios.post(`${apiBaseUrl}api/wishlist/remove/`, {
+                user_id: user.id,
+                variant_id: variantId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`
+                }
+            })
+            .then(response => {
+                console.log("Product removed from wishlist:", response?.data);
+                itemDeleted = response.data.wishlist_item.id;
+                // Afficher une notification de succès
+                dispatch({ type: 'wishlist/removeFromWishlist', payload: { itemDeleted } });
+                setProductWished(false);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Product removed from wishlist',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            })
+            .catch(error => {
+                console.error("Error removing product from wishlist:", error.response.data);
+            });
         }
     }
 
@@ -237,6 +313,28 @@ const Product = () => {
                     dispatch({ type: 'cart/updateCart', payload: items });
                 })
                 .catch((error) => console.error("Error fetching data:", error));
+            // Recuperer la wishlist de l'utilisateur
+            axios.post(`${apiBaseUrl}api/wishlist/`, { user_id: user.id }, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`
+                }
+            })
+            .then(async response => {
+                console.log("User ", user?.id, " wishlist data: ", response.data);
+                const items = await Promise.all(
+                        response.data.map(async (item) => {
+                            const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
+                            return {
+                                id: item.id,
+                                //user: item.user,
+                                variant: variantResponse.data, // Stocker la variante entière
+                        }})
+                    );
+                    console.log("User wishlist:", items);
+                // Dispatch pour mettre à jour la wishlist dans Redux
+                dispatch({ type: 'wishlist/updateWishlist', payload: items });
+            })  
+
         }
     }, [user]);
 
@@ -259,8 +357,30 @@ const Product = () => {
                                 </div>
                             ))}
                         </div>
-                        <div className='lg:h-[628px] lg:w-[488px] h-auto w-full rounded cursor-pointer'>
-                            <img src={apiBaseUrl + selectedVariantImage} className='h-full w-full' alt="" />
+                        <div className='lg:h-[628px] lg:w-[488px] h-auto w-full rounded cursor-pointer relative overflow-hidden'>
+                        {productWished && (
+                            <div
+                            style={{
+                                position: 'absolute',
+                                top: '24px',
+                                left: '-48px',
+                                width: '180px',
+                                transform: 'rotate(-45deg)',
+                                background: 'linear-gradient(90deg, #22c55e 80%, #16a34a 100%)',
+                                color: 'white',
+                                textAlign: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '14px',
+                                padding: '6px 0',
+                                zIndex: 10,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                borderRadius: '8px'
+                            }}
+                            >
+                            In Wishlist
+                            </div>
+                        )}
+                        <img src={apiBaseUrl + selectedVariantImage} className='h-full w-full rounded' alt="" />
                         </div>
                     </div>
                     {/* partie droite, details */}
@@ -319,11 +439,29 @@ const Product = () => {
                             </div>
                             <div className={`${!sizeId && pressed?'flex font-serif text-red-600':'hidden'}`}>Select a size </div>
                             <div className='flex flex-col items-center gap-4'>
-                                <button className='bg-primary  hover:bg-secondary text-gray-50 py-2 px-4 w-full' onClick={()=>{
+                                <button className='bg-primary  hover:bg-secondary
+                                 text-gray-50 py-2 px-4 w-full' onClick={()=>{
                                     setPressed(true)
                                     handleAddToCart()
                                     }}>Add to Cart</button>
-                                <button className='text-primary hover:text-secondary py-2 px-4 w-full border border-primary hover:border-secondary'>Add to Wishlist</button>
+                                <button title={productWished?"Remove from the wishing list":"Add to the wish list"} className='text-gray-50 hover:bg-primary bg-secondary 
+                                py-2 px-4 w-full'
+                                 onClick={()=>{
+                                    if (productWished) {
+                                        handleRemoveFromWishlist();
+                                    } else {
+                                        setProductWished(true)
+                                        handleAddToWishlist()
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Product added to wishlist',
+                                            showConfirmButton: false,
+                                            timer: 1500
+                                        });
+
+                                        }
+
+                                 }}>{productWished? "Remove from the Wishlist":"Add to Wishlist"}</button>
                             </div>
                             <div className='flex flex-col gap-2'>
                                 <div className='text-gray-700 dark:text-gray-200 font-semibold'>Product details</div>

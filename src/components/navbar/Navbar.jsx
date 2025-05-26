@@ -60,10 +60,13 @@ const DropdownLinks = [
         link:"/#"
     },
 ]
-const Navbar = ({handleOrderPopup}) => {
+const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
     const user = useSelector((state) => state.user.user);
     const dispatch = useDispatch()
     const cart = useSelector((state) => state.cart.items);
+    const wishlist = useSelector((state) => state.wishlist.items);
+    // const [cart, setCart] = useState([]);
+    const totalWishlistItems = wishlist?.length;
     // const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
     const totalItems = cart?.length;
     const totalPrice = cart?.reduce((total, item) => total + item.variant.price * item.quantity, 0);
@@ -95,6 +98,32 @@ const Navbar = ({handleOrderPopup}) => {
                     dispatch({ type: 'cart/updateCart', payload: items });
                 })
                 .catch((error) => console.error("Error fetching data:", error));
+
+            axios
+                .post(`${apiBaseUrl}api/wishlist/`, { user_id: user.id }, {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`
+                    }
+                })
+                .then(async (response) => {
+                    const wishlistData = response.data;
+
+                    // Récupérer les détails de chaque variante
+                    const items = await Promise.all(
+                        wishlistData.map(async (item) => {
+                            const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
+                            return {
+                                id: item.id,
+                                variant: variantResponse.data, // Stocker la variante entière
+                            };
+                        })
+                    );
+                     console.log("wishlist items navbar: ", items)
+
+                    // Dispatch pour mettre à jour le panier dans Redux
+                    dispatch({ type: 'wishlist/updateWishlist', payload: items });
+                })
+                .catch((error) => console.error("Error fetching data:", error));
         }
     }, [user]);
 
@@ -112,7 +141,7 @@ const Navbar = ({handleOrderPopup}) => {
             text: "Are you sure you want to logout?",   
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: '#fea928',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, logout!'
         }).then((result) => {
@@ -179,14 +208,15 @@ const Navbar = ({handleOrderPopup}) => {
                         className='text-secondary hover:text-white hover:bg-primary 
                         transition-all duration-200 p-2 rounded-full relative'
                         title={`Total items in cart: ${totalItems}`}>
-                            <span className='absolute -top-0 -right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs'>{totalItems}</span>
+                            {totalItems > 0 && <span className='absolute -top-0 -right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs'>{totalItems}</span>}
                             <BiCart className='text-3xl'/>
                         </button>
-                        <Link to="/wishlist" className='text-secondary hover:text-white hover:bg-primary 
-                        transition-all duration-200 p-2 rounded-full'
-                        title={'Wishlist'}>  
+                        <button onClick={()=> handleWishlistPopup()} className='text-secondary hover:text-white hover:bg-primary 
+                        transition-all duration-200 p-2 rounded-full relative'
+                        title={'Vous avez ' + totalWishlistItems + ' dans votre liste de souhaits'}>  
+                            {totalWishlistItems > 0 && <span className='absolute -top-0 -right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs'>{totalWishlistItems}</span>}
                             <BiHeart className='text-3xl'/>
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </div>

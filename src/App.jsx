@@ -3,6 +3,7 @@ import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
 import Navbar from './components/navbar/Navbar'
 import Footer from './components/Footer/Footer'
 import Cart from './components/Cart/Cart'
+import Wishlist from './components/Wishlist/Wishlist'
 import AOS from "aos"
 import "aos/dist/aos.css"
 import { Boutique } from './pages/Boutique'
@@ -21,12 +22,16 @@ function App() {
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL; 
 const dispatch = useDispatch()
 const [orderPopup, setOrderPopup] = useState(false)
+const [wishlistPopup, setWishlistPopup] = useState(false)
 const [_category, setCategory] = useState(1)
 const [message, setMessage] = useState("");
 const handleOrderPopup = () => {
   setOrderPopup(!orderPopup)
 }
 
+const handleWishlistPopup = () => {
+  setWishlistPopup(!wishlistPopup)
+}
 
 
 useEffect(() => {
@@ -50,7 +55,7 @@ useEffect(() => {
   return (
     <Router>
       <div className='bg-white dark:bg-gray-900 dark:text-white duration-200'>
-      <Navbar handleOrderPopup={handleOrderPopup}/>
+      <Navbar handleOrderPopup={handleOrderPopup} handleWishlistPopup={handleWishlistPopup}/>
 
       <Routes>
           <Route path="/" element={<Home handleOrderPopup={handleOrderPopup} message={message} />} />
@@ -66,6 +71,7 @@ useEffect(() => {
         </Routes>
        <Footer/>
        <Cart orderPopup={orderPopup} setOrderPopup={setOrderPopup}/>
+      <Wishlist wishlistPopup={wishlistPopup} setWishlistPopup={setWishlistPopup}/> 
     </div>
     </Router>
   )
