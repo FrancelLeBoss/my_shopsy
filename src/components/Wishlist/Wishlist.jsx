@@ -1,4 +1,3 @@
-import React from 'react'
 import { IoCloseOutline } from 'react-icons/io5'
 import { useSelector,useDispatch } from 'react-redux'
 import { useEffect,useState } from 'react'
@@ -17,6 +16,11 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     
+    useEffect(() => {
+        if (user) {
+            fetchWishlist();
+        }
+    }, [user]);
    
     const handleLogin = async () => {
         try {
@@ -65,8 +69,7 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
             let itemDeleted
           await axios.post(`${apiBaseUrl}api/wishlist/remove/`, {
             user_id: user?.id,
-            variant_id: item.variant?.id,
-            size_id: item.size?.id,
+            variant_id: item.variant?.id
           }). then(response => {
             console.log("Item removed from wishlist:", response.data);  
             itemDeleted = response.data.wishlist_item.id;
@@ -94,7 +97,12 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
     // Fonction utilitaire pour récupérer l'image (à adapter selon ta logique)
     const imageUrl = (images) => {
         if (!images || images.length === 0) return '';
-        return images[0].image; // ou adapte selon ta structure
+        for (let i = 0; i < images.length; i++) {
+            if (images[i].mainImage) {
+                return `${apiBaseUrl}${images[i].image}`;
+            }
+            return `${apiBaseUrl}${images[0].image}`;
+        }
       };
 
   return (

@@ -8,7 +8,7 @@ import { GrDown, GrUp } from "react-icons/gr";
 import axios from 'axios';
 import { useSelector, useDispatch } from 'react-redux';
 import { BiStar } from 'react-icons/bi';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, set } from 'date-fns';
 import Swal from 'sweetalert2'
 
 import { fr, se } from 'date-fns/locale'; // Importez la locale française
@@ -65,23 +65,20 @@ const Product = () => {
             })
             .catch(error => console.error("Error fetching data:", error));
 
-        // Vérifier si le produit est déjà dans la wishlist
-        if (user && variant){
-            axios.post(`${apiBaseUrl}api/wishlist/already_exists/`, {user_id: user.id, variant_id: variantId}, {
-                headers: {
-                    Authorization: `Bearer ${user.token}`
-                }
-            })
-            .then(response => {
-                if (response.data.exists) {
-                    setProductWished(true);
-                } else {
-                    setProductWished(false);
-                }
-            })
-        }
-        
-    }, [productId, variantId]);
+    }, [productId]);
+
+    useEffect(() => {
+    if (user && variant) {
+        axios.post(`${apiBaseUrl}api/wishlist/already_exists/`, {user_id: user.id, variant_id: variant.id}, {
+            headers: {
+                Authorization: `Bearer ${user.token}`
+            }
+        })
+        .then(response => {
+            setProductWished(response.data.exists);
+        })
+    }
+}, [user, variant]);
 
     useEffect(() => {
         const initialVariant = selectedVariant(variantId);
@@ -245,12 +242,14 @@ const Product = () => {
                     Authorization: `Bearer ${user.token}`
                 }
             })
-            .then(response => {
+            .then(async response => {
                 console.log("Product added to wishlist:", response?.data);
                 // Afficher une notification de succès
-
-                dispatch({ type: 'wishlist/addToWishlist', payload: response?.data?.wishlist_item?.variant });
-            })
+                let variant = response?.data?.wishlist_item?.variant
+                const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${variant.id}/`);
+                variant = variantResponse.data;
+                dispatch({ type: 'wishlist/addToWishlist', payload: { variant } });
+                })
             .catch(error => {
                 console.error("Error adding product to wishlist:", error.response.data);
             });
@@ -437,14 +436,18 @@ const Product = () => {
                                     ))
                                 }
                             </div>
-                            <div className={`${!sizeId && pressed?'flex font-serif text-red-600':'hidden'}`}>Select a size </div>
+                            <div className={`${!sizeId && pressed?'flex font-serif text-red-600':'hidden'}`}>Please select a size </div>
                             <div className='flex flex-col items-center gap-4'>
                                 <button className='bg-primary  hover:bg-secondary
                                  text-gray-50 py-2 px-4 w-full' onClick={()=>{
                                     setPressed(true)
+                                    if (sizeId) {
                                     handleAddToCart()
+                                    }
                                     }}>Add to Cart</button>
-                                <button title={productWished?"Remove from the wishing list":"Add to the wish list"} className='text-gray-50 hover:bg-primary bg-secondary 
+                                <button title={productWished?"Remove from the wishlist"
+                                :"Add to the wish list"} className='text-gray-50 
+                                hover:bg-primary bg-secondary 
                                 py-2 px-4 w-full'
                                  onClick={()=>{
                                     if (productWished) {

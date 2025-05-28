@@ -86,10 +86,12 @@ const Cart = ({orderPopup, setOrderPopup}) => {
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, remove it!',
         }).then((result) => {
+            console.log("Item to remove:", item);
             if (result.isConfirmed) {
                 axios.post(`${apiBaseUrl}api/cart/remove/`, {
                     variant_id: item.variant.id,
                     user_id: user.id,
+                    size_id: item?.size?.id,
                 })
                 .then((response) => {
                     dispatch({ type: 'cart/removeItem', payload: item });
