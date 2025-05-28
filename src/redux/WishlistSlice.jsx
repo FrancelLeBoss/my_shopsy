@@ -25,6 +25,7 @@ const WishlistSlice = createSlice({
     removeFromWishlist: (state, action) => {
       const {itemDeleted} = action.payload;
       state.items = state.items.filter((item) => item.id !== itemDeleted);
+
     },
     // Vider la liste de souhaits
     clearWishlist: (state) => {

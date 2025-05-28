@@ -91,7 +91,7 @@ const Product = () => {
                 })
                 .catch(error => console.error("Error fetching data:", error));
         }
-    }, [product]);
+    }, [product, variantId]);
 
     useEffect(() => {
         const fetchCommentsAndUsers = async () => {
@@ -248,7 +248,8 @@ const Product = () => {
                 let variant = response?.data?.wishlist_item?.variant
                 const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${variant.id}/`);
                 variant = variantResponse.data;
-                dispatch({ type: 'wishlist/addToWishlist', payload: { variant } });
+                variant.id = response?.data?.wishlist_item?.id;
+                dispatch({ type: 'wishlist/addToWishlist', payload: variant });
                 })
             .catch(error => {
                 console.error("Error adding product to wishlist:", error.response.data);
@@ -268,8 +269,8 @@ const Product = () => {
                 }
             })
             .then(response => {
-                console.log("Product removed from wishlist:", response?.data);
                 itemDeleted = response.data.wishlist_item.id;
+                console.log("Product removed from wishlist ID:", itemDeleted);
                 // Afficher une notification de succès
                 dispatch({ type: 'wishlist/removeFromWishlist', payload: { itemDeleted } });
                 setProductWished(false);
@@ -356,7 +357,7 @@ const Product = () => {
                                 </div>
                             ))}
                         </div>
-                        <div className='lg:h-[628px] lg:w-[488px] h-auto w-full rounded cursor-pointer relative overflow-hidden'>
+                        <div className='lg:h-[638px] lg:w-[488px] h-auto w-full rounded cursor-pointer relative overflow-hidden'>
                         {productWished && (
                             <div
                             style={{
