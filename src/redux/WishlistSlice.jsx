@@ -11,11 +11,7 @@ const WishlistSlice = createSlice({
     // Ajouter un produit au panier
     addToWishlist: (state, action) => {
       const variant = action.payload;
-      const existingItem = state.items.find((item) => item.id === variant.id);
-
-      if (!existingItem) {
-        state.items.push(variant); // Ajoute un nouveau produit
-      } 
+      state.items.push(variant);
     },
     updateWishlist: (state, action) => {
       state.items = action.payload;

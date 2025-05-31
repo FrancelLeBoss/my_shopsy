@@ -162,7 +162,7 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
 
   return (
     <div className='shadow-md bg-white dark:bg-gray-900 dark:text-white duration-200 relative z-40'>
-        <div className='container hidden md:flex justify-between items-center'>
+        <div className='container hidden md:flex justify-between items-center font-medium'>
             <div className='flex items-center gap-2'>
                 <span className='text-primary font-bold'>Free shipping</span>
                 <span className='text-gray-500'>on all orders</span>
@@ -181,7 +181,7 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
             </div>
         </div>
         {/* Upper Navbar */}
-        <div className='bg-primary/40 py-2'>
+        <div className='bg-primary/40 py-2 font-medium'>
             <div className='container flex justify-between items-center'>
                 <div>
                     <Link to="/" className='font-bold text-2xl sm:text-3xl flex gap-2'>
@@ -223,7 +223,7 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
         </div>
         {/* Lower navbar */}
         <div className='flex justify-center'>
-            <ul className='hidden sm:flex justify-between gap-4 items-center'>
+            <ul className='hidden sm:flex justify-between gap-4 items-center text-lg font-semibold'>
                 {
                     Menu.map((data)=>(
                         <li key={data.id}><Link to={data.link} className='inline-block px-4 hover:text-primary duration-200'>{data.name}</Link></li>

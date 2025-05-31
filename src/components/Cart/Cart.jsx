@@ -225,19 +225,18 @@ const Cart = ({orderPopup, setOrderPopup}) => {
                                                 <h1 className='text-center text-gray-500 dark:text-gray-400'>Your cart is empty</h1>
                                             )
                                         }   
-                                        {cart.length>0 && <div className='text-xs flex items-center justify-between mt-2 px-2 py-1 bg-red-600 text-gray-100 cursor-pointer hover:bg-red-700 w-32'
-                                            onClick={() => {
-                                                handleClearCart()
-                                            }}>
-                                            <span>Clear the cart</span>
-                                            <IoCloseOutline className='text-white' />       
-                                        </div>}
-                                    </div>
+                                        </div>
                                     {/* Total price */} 
                                     <div className='flex items-center justify-between mt-4'>
                                         <h1 className='text-sm text-gray-800 dark:text-gray-300'>Total Price</h1>
                                         <h1 className='text-sm text-gray-800 dark:text-gray-300'>{totalPrice} $</h1>
                                     </div>
+                                    {cart.length>0 && <div className='text-xs flex items-center justify-between mt-2 text-red-600 cursor-pointer underline hover:text-red-700 w-32'
+                                            onClick={() => {
+                                                handleClearCart()
+                                            }}>
+                                            <span>Clear the cart</span>   
+                                        </div>}
                                 </div>
                             }
                             {

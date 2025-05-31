@@ -243,14 +243,15 @@ const Product = () => {
                 }
             })
             .then(async response => {
-                console.log("Product added to wishlist:", response?.data);
-                // Afficher une notification de succès
                 let variant = response?.data?.wishlist_item?.variant
                 const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${variant.id}/`);
-                variant = variantResponse.data;
-                variant.id = response?.data?.wishlist_item?.id;
-                dispatch({ type: 'wishlist/addToWishlist', payload: variant });
-                })
+                // Structure cohérente avec le fetch
+                const wishlistItem = {
+                    id: response?.data?.wishlist_item?.id, // id de l'élément wishlist
+                    variant: variantResponse.data
+                };
+                dispatch({ type: 'wishlist/addToWishlist', payload: wishlistItem });
+            })
             .catch(error => {
                 console.error("Error adding product to wishlist:", error.response.data);
             });
@@ -339,16 +340,16 @@ const Product = () => {
     }, [user]);
 
     return (
-        <div className='flex flex-col gap-0'>
+        <div className='flex flex-col lg:gap-8'>
             <div className="bg-primary/40 py-3">
                 <div className="text-xl text-secondary text-center font-semibold dark:text-gray-200">Product Details</div>
                 <div className="text-sm text-gray-500 text-center dark:text-gray-200">Home / {category || "Loading..." } / {product?.title}</div>
             </div>
             <div className='flex flex-col gap-2'>
-                <div className='container flex flex-col gap-2 lg:gap-4 lg:flex-row py-2'>
+                <div className='justify-center flex flex-col gap-4 lg:gap-12 lg:flex-row py-2'>
                     {/* partie gauche(photos) */}
-                    <div className='flex gap-2 flex-col-reverse lg:flex-row items-start h-1/2 lg:h-[628px] lg:w-[548px] w-full'>
-                        <div className='flex lg:flex-col flex-row gap-1'>
+                    <div className='flex gap-4 flex-col-reverse lg:flex-row items-start h-1/2 lg:h-[720px] lg:w-[648px] w-full'>
+                        <div className='flex lg:flex-col flex-row gap-2'>
                             {selectedVariant(variantId)?.images.map((img) => (
                                 <div key={img.id} className='w-[64px] h-[64px] rounded cursor-pointer'>
                                     <img src={apiBaseUrl + img.image} className='h-full w-full' alt=""
@@ -357,7 +358,7 @@ const Product = () => {
                                 </div>
                             ))}
                         </div>
-                        <div className='lg:h-[638px] lg:w-[488px] h-auto w-full rounded cursor-pointer relative overflow-hidden'>
+                        <div className='lg:h-full h-auto w-full rounded cursor-pointer relative overflow-hidden'>
                         {productWished && (
                             <div
                             style={{
@@ -384,11 +385,11 @@ const Product = () => {
                         </div>
                     </div>
                     {/* partie droite, details */}
-                    <div className='flex-1 flex flex-col gap-4 lg:mr-32'>
+                    <div className='flex-1 flex flex-col gap-4 max-w-[500px]'>
                         <div className='flex flex-col gap-1'>
-                            <div className='text-2xl font-semibold dark:text-gray-200'>{product?.title}</div>
-                            <p className='text-lg text-med text-gray-500 dark:text-gray-200'>{product?.short_desc}</p>
-                            <p className='text-2xl text-gray-700 flex lg:flex-row flex-col lg:items-center gap-2 dark:text-gray-200'>
+                            <div className='text-3xl font-semibold dark:text-gray-200'>{product?.title}</div>
+                            <p className='text-lg font-medium text-gray-500 dark:text-gray-200'>{product?.short_desc}</p>
+                            <p className='text-2xl text-gray-700 flex lg:flex-row flex-col lg:items-center gap-2 dark:text-gray-200 font-semibold my-3'>
                                 {variant?.discount > 0
                                     ? "$" + new_price(variant?.price, variant?.discount)
                                     : "$" + variant?.price}
@@ -414,7 +415,7 @@ const Product = () => {
                                         : apiBaseUrl + "/default-image.jpg" // Image par défaut si aucune image n'est disponible
                                     }
                                     alt="Variant Image"
-                                    className={`h-14 w-14  cursor-pointer border-2 ${variantId == v.id ? 'border-primary' : 'border-gray-300'}`} 
+                                    className={`h-20 w-20  cursor-pointer border-2 ${variantId == v.id ? 'border-primary' : 'border-gray-300'}`} 
                                     onClick={() => {
                                         setVariantId(v.id);
                                     }} 
@@ -423,14 +424,14 @@ const Product = () => {
                             }
                         </div>
                         <div className='flex flex-col gap-4 '>
-                            <div className='flex justify-between items-center gap-2 lg:text-lg md:text-base text-sm font-semibold dark:text-gray-100 text-gray-700'>
+                            <div className='flex justify-between items-center gap-2 lg:text-lg md:text-base text-sm font-bold dark:text-gray-100 text-gray-700'>
                                 <div className=''>Select Size</div>
                                 <Link to={'/'} className='flex items-center gap-1'><FaRuler /> Size guide</Link>
                             </div>
-                            <div className='grid lg:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-2'>
+                            <div className='grid lg:grid-cols-4 md:grid-cols-3 grid-cols-2 lg:gap-4 gap-2 font-semibold'>
                                 {
                                     product?.variants?.find((v) => v.id == variantId)?.sizes.map((v) => (
-                                        <div key={v.id} className={`p-2 border ${sizeId == v.id ? 'border-primary' : 'border-gray-300'} cursor-pointer`}
+                                        <div key={v.id} className={`p-4 border ${sizeId == v.id ? 'border-primary' : 'border-gray-300'} cursor-pointer`}
                                             onClick={() => setSizeId(v.id)}>
                                             {v.size}
                                         </div>    
@@ -440,7 +441,7 @@ const Product = () => {
                             <div className={`${!sizeId && pressed?'flex font-serif text-red-600':'hidden'}`}>Please select a size </div>
                             <div className='flex flex-col items-center gap-4'>
                                 <button className='bg-primary  hover:bg-secondary
-                                 text-gray-50 py-2 px-4 w-full' onClick={()=>{
+                                 text-gray-50 py-4 px-4 w-full font-semibold text-lg' onClick={()=>{
                                     setPressed(true)
                                     if (sizeId) {
                                     handleAddToCart()
@@ -448,8 +449,8 @@ const Product = () => {
                                     }}>Add to Cart</button>
                                 <button title={productWished?"Remove from the wishlist"
                                 :"Add to the wish list"} className='text-gray-50 
-                                hover:bg-primary bg-secondary 
-                                py-2 px-4 w-full'
+                                hover:bg-black bg-black/80 dark:bg-gray-800 dark:hover:bg-black/80
+                                lg:py-4 lg:px-4 p-3 text-lg font-semibold w-full'
                                  onClick={()=>{
                                     if (productWished) {
                                         handleRemoveFromWishlist();
@@ -467,16 +468,16 @@ const Product = () => {
 
                                  }}>{productWished? "Remove from the Wishlist":"Add to Wishlist"}</button>
                             </div>
-                            <div className='flex flex-col gap-2'>
-                                <div className='text-gray-700 dark:text-gray-200 font-semibold'>Product details</div>
-                                <p className='text-gray-500 dark:text-gray-400'>{product?.long_desc}</p>
-                                <div className='text-gray-700 dark:text-gray-200 cursor-pointer hover:text-primary dark:hover:text-primary'>More about the product</div>
+                            <div className='flex flex-col gap-2 text-lg mt-4'>
+                                <div className='text-gray-700 dark:text-gray-200 font-semibold text-2xl lg:text-3xl'>Product details</div>
+                                <p className='font-medium text-gray-500 dark:text-gray-400'>{product?.long_desc}</p>
+                                <div className='font-medium text-gray-700 dark:text-gray-200 cursor-pointer hover:text-primary dark:hover:text-primary text-xl'>More about the product</div>
                             </div>
                             <hr />
-                            <div className='flex items-center justify-between cursor-pointer' onClick={() => setDisplayReviews(!displayReviews)}>
+                            <div className='flex items-center justify-between cursor-pointer  text-2xl lg:text-3xl' onClick={() => setDisplayReviews(!displayReviews)}>
                                 <span className=''>Reviews({comments.length})</span>
                                 <div className='flex gap-1 items-center'>
-                                    <span className='text-yellow-500'>{averageStars()}</span><BsStarFill className='text-yellow-500' />
+                                    <span className='text-primary'>{averageStars()}</span><BsStarFill className='text-primary' />
                                     <span> {displayReviews ? <GrUp /> : <GrDown />} </span>
                                 </div>
                             </div>
