@@ -1,16 +1,34 @@
 import { useState } from "react";
 
-const CheckboxFilter = ({ labels = ["Boys","Girls","Both"],options = ["m", "f", "b"], onFilterChange, extra = "", uniqueSelection = false}) => {
-    const [selected, setSelected] = useState(uniqueSelection ? "" : []);
+interface CheckboxFilterProps {
+    labels?: string[];
+    options?: string[];
+    onFilterChange: (selected: string[] | string) => void;
+    extra?: string;
+    uniqueSelection?: boolean;
+}
 
-    const handleCheckboxChange = (option) => {
-        let newSelected
+const CheckboxFilter = ({
+    labels = ["Boys","Girls","Both"],
+    options = ["m", "f", "b"],
+    onFilterChange,
+    extra = "",
+    uniqueSelection = false
+}: CheckboxFilterProps) => {
+    const [selected, setSelected] = useState<string | string[]>(uniqueSelection ? "" : []);
+
+    interface HandleCheckboxChangeProps {
+        (option: string): void;
+    }
+
+    const handleCheckboxChange: HandleCheckboxChangeProps = (option) => {
+        let newSelected: string[] | string;
         if (uniqueSelection) {
             newSelected = selected === option ? "" : option; // Sélection unique
         } else {
-            newSelected = selected.includes(option)
-                ? selected.filter((item) => item !== option) // Désélection
-                : [...selected, option]; // Ajout
+            newSelected = (selected as string[]).includes(option)
+                ? (selected as string[]).filter((item: string) => item !== option) // Désélection
+                : [...(selected as string[]), option]; // Ajout
         }
         setSelected(newSelected);
         onFilterChange(newSelected); // Envoie les nouvelles valeurs au parent

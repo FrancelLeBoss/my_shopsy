@@ -6,9 +6,23 @@ import Swal from 'sweetalert2'
 import axios from 'axios'
 import { login } from '../../redux/userSlice';
 
-const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
-    const user = useSelector((state) => state.user.user);
-    const wishlist = useSelector((state) => state.wishlist.items);
+interface WishlistProps {
+    wishlistPopup: boolean;
+    setWishlistPopup: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const Wishlist = ({wishlistPopup, setWishlistPopup}: WishlistProps) => {
+    interface RootState {
+        user: {
+            user: any;
+        };
+        wishlist: {
+            items: any[];
+        };
+    }
+
+    const user = useSelector((state: RootState) => state.user.user);
+    const wishlist = useSelector((state: RootState) => state.wishlist.items);
     const dispatch = useDispatch()
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
     const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +43,8 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
             username,
             password,
           });
-          dispatch(login({ user: response.data.user, token: response.data.token }));
+          const data = response.data as { user: any; token: string };
+          dispatch(login({ user: data.user, token: data.token }));
         } catch (error) {
           console.error('Login failed:', error);
         }
@@ -44,15 +59,44 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
                 }
             })
             .then(async response => {
-                const items = await Promise.all(
-                        response.data.map(async (item) => {
-                            const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
-                            return {
-                                id: item.id,
-                                //user: item.user,
-                                variant: variantResponse.data, // Stocker la variante entière
-                        }})
-                    );
+                interface WishlistItem {
+                    id: number;
+                    variant: Variant;
+                }
+
+                interface Variant {
+                    id: number;
+                    product: Product;
+                    color: string;
+                    price: number;
+                    images: Image[];
+                    // Add other fields as needed
+                }
+
+                interface Product {
+                    id: number;
+                    title: string;
+                    // Add other fields as needed
+                }
+
+                interface Image {
+                    id: number;
+                    image: string;
+                    mainImage: boolean;
+                    // Add other fields as needed
+                }
+
+                const data = response.data as Array<{ id: number; variant: number }>;
+                const items: WishlistItem[] = await Promise.all(
+                    data.map(async (item: { id: number; variant: number }) => {
+                        const variantResponse = await axios.get<Variant>(`${apiBaseUrl}api/products/variant/${item.variant}/`);
+                        return {
+                            id: item.id,
+                            //user: item.user,
+                            variant: variantResponse.data, // Stocker la variante entière
+                        };
+                    })
+                );
                 // Dispatch pour mettre à jour la wishlist dans Redux
                 dispatch({ type: 'wishlist/updateWishlist', payload: items });
             })  
@@ -64,23 +108,47 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
       };
 
     // Fonction pour supprimer un élément de la wishlist
-    const handleRemoveFromWishlist = async (item) => {
+    interface WishlistItem {
+        id: number;
+        variant: {
+            id: number;
+            product: {
+                id: number;
+                title: string;
+            };
+            color: string;
+            price: number;
+            images: Array<{
+                id: number;
+                image: string;
+                mainImage: boolean;
+            }>;
+        };
+    }
+
+    interface RemoveWishlistResponse {
+        wishlist_item: {
+            id: number;
+        };
+    }
+
+    const handleRemoveFromWishlist = async (item: WishlistItem): Promise<void> => {
         try {
-            let itemDeleted
-          await axios.post(`${apiBaseUrl}api/wishlist/remove/`, {
-            user_id: user?.id,
-            variant_id: item.variant?.id
-          }). then(response => {
-            console.log("Item removed from wishlist:", response.data);  
-            itemDeleted = response.data.wishlist_item.id;
-            })
-          // Met à jour le state Redux après suppression
-          dispatch({ type: 'wishlist/removeFromWishlist', payload: { itemDeleted } });
-          Swal.fire('Supprimé', 'Produit retiré de la liste de souhaits.', 'success');
+            let itemDeleted: number | undefined;
+            await axios.post<RemoveWishlistResponse>(`${apiBaseUrl}api/wishlist/remove/`, {
+                user_id: user?.id,
+                variant_id: item.variant?.id
+            }).then(response => {
+                console.log("Item removed from wishlist:", response.data);  
+                itemDeleted = response.data.wishlist_item.id;
+            });
+            // Met à jour le state Redux après suppression
+            dispatch({ type: 'wishlist/removeFromWishlist', payload: { itemDeleted } });
+            Swal.fire('Supprimé', 'Produit retiré de la liste de souhaits.', 'success');
         } catch (error) {
-          Swal.fire('Erreur', "Impossible de retirer l'article.", 'error');
+            Swal.fire('Erreur', "Impossible de retirer l'article.", 'error');
         }
-      };
+    };
 
     // Fonction pour vider la wishlist
     const handleClearWishlist = async () => {
@@ -95,7 +163,13 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
       };
 
     // Fonction utilitaire pour récupérer l'image (à adapter selon ta logique)
-    const imageUrl = (images) => {
+    interface ImageType {
+        id: number;
+        image: string;
+        mainImage: boolean;
+    }
+
+    const imageUrl = (images: ImageType[] | undefined): string => {
         if (!images || images.length === 0) return '';
         for (let i = 0; i < images.length; i++) {
             if (images[i].mainImage) {
@@ -103,7 +177,8 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
             }
             return `${apiBaseUrl}${images[0].image}`;
         }
-      };
+        return '';
+    };
 
   return (
     <>
@@ -117,7 +192,7 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
                             <div className='flex items-center justify-between'>
                                 <h1 className='text-xl text-gray-800 dark:text-gray-300'>Liste des souhaits</h1>
                                 <div>
-                                    <IoCloseOutline className='text-2xl cursor-pointer' onClick={()=>setWishlistPopup()}/>
+                                    <IoCloseOutline className='text-2xl cursor-pointer' onClick={()=>setWishlistPopup(false)}/>
                                 </div>
                             </div>
                             {
@@ -193,7 +268,6 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
                                             required
                                             />
                                         <span
-                                            type="button"
                                             onClick={() => setShowPassword(!showPassword)}
                                             className='absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700'>
                                             {showPassword ? <FiEyeOff /> : <FiEye />}
@@ -208,7 +282,7 @@ const Wishlist = ({wishlistPopup, setWishlistPopup}) => {
                                         handleLogin()
                                     }
                                     else{
-                                        setWishlistPopup()
+                                        setWishlistPopup(false)
                                     } 
                                 }} className='text-white px-2 py-1 bg-primary hover:bg-secondary 
                                 '>{user?'got it!': "Register"}</button>

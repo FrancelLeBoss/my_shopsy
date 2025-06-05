@@ -7,10 +7,25 @@ import Swal from 'sweetalert2'
 import axios from 'axios'
 import { login } from '../../redux/userSlice';
 
-const Cart = ({orderPopup, setOrderPopup}) => {
-    const totalPrice = useSelector((state) => state.cart.totalPrice)
-    const user = useSelector((state) => state.user.user);
-    const cart = useSelector((state) => state.cart.items);
+interface CartProps {
+    orderPopup: boolean;
+    setOrderPopup: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
+    interface RootState {
+        cart: {
+            totalPrice: number;
+            items: any[];
+        };
+        user: {
+            user: any;
+        };
+    }
+
+    const totalPrice = useSelector((state: RootState) => state.cart.totalPrice)
+    const user = useSelector((state: RootState) => state.user.user);
+    const cart = useSelector((state: RootState) => state.cart.items);
     const dispatch = useDispatch()
     const [order, setOrder] = useState(false)
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -26,13 +41,18 @@ const Cart = ({orderPopup, setOrderPopup}) => {
       
       }, [cart, user]);
 
-    const imageUrl = (images) => {
-        let mainImage
-        images?.map((image) => {
-            if(image.mainImage === true) mainImage = apiBaseUrl+image.image
-        })
-        return mainImage
+    interface Image {
+        mainImage: boolean;
+        image: string;
     }
+
+    const imageUrl = (images: Image[] | undefined): string | undefined => {
+        let mainImage: string | undefined;
+        images?.map((image: Image) => {
+            if (image.mainImage === true) mainImage = apiBaseUrl + image.image;
+        });
+        return mainImage;
+    };
     const handleLogin = async () => {
         try {
           const response = await axios.post(`${apiBaseUrl}api/login/`, {
@@ -40,7 +60,8 @@ const Cart = ({orderPopup, setOrderPopup}) => {
             username,
             password,
           });
-          dispatch(login({ user: response.data.user, token: response.data.token }));
+          const data = response.data as { user: any; token: string };
+          dispatch(login({ user: data.user, token: data.token }));
         } catch (error) {
           console.error('Login failed:', error);
         }
@@ -76,7 +97,28 @@ const Cart = ({orderPopup, setOrderPopup}) => {
         });
       };
 
-    const handleRemoveFromCart = (item) => {
+    interface CartItem {
+        variant: {
+            id: number;
+            product?: {
+                title?: string;
+            };
+            color?: string;
+            price?: number;
+            images?: Image[];
+        };
+        size?: {
+            id?: number;
+            size?: string;
+        };
+        quantity: number;
+    }
+
+    interface SwalResult {
+        isConfirmed: boolean;
+    }
+
+    const handleRemoveFromCart = (item: CartItem) => {
         Swal.fire({
             title: 'Remove from cart',
             text: "Are you sure ? You won't be able to revert this!",
@@ -85,7 +127,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
             confirmButtonColor: '#fea928',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, remove it!',
-        }).then((result) => {
+        }).then((result: SwalResult) => {
             console.log("Item to remove:", item);
             if (result.isConfirmed) {
                 axios.post(`${apiBaseUrl}api/cart/remove/`, {
@@ -106,30 +148,42 @@ const Cart = ({orderPopup, setOrderPopup}) => {
         
     }
 
-    const handleUpdateQuantity = (item, newQuantity) => {
+    interface HandleUpdateQuantityItem {
+        variant: {
+            id: number;
+        };
+        size?: {
+            id?: number;
+        };
+    }
+
+    const handleUpdateQuantity = (
+        item: HandleUpdateQuantityItem,
+        newQuantity: number
+    ): void => {
         if (newQuantity < 1) {
-          Swal.fire('Invalid Quantity', 'Quantity must be at least 1.', 'error');
-          return;
+            Swal.fire('Invalid Quantity', 'Quantity must be at least 1.', 'error');
+            return;
         }
         axios
-          .post(`${apiBaseUrl}api/cart/update/`, {
-            variant_id: item.variant.id,
-            user_id: user.id,
-            quantity: newQuantity,
-            size_id: item?.size?.id ,
-          })
-          .then((response) => {
-            dispatch({ type: 'cart/updateCartItem', payload: { id: item.variant.id, quantity: newQuantity } });
-            fetchCart(); // Refresh the cart to ensure consistency
-          })
-          .catch((error) => console.error("Error updating quantity:", error));
-      };
+            .post(`${apiBaseUrl}api/cart/update/`, {
+                variant_id: item.variant.id,
+                user_id: user.id,
+                quantity: newQuantity,
+                size_id: item?.size?.id,
+            })
+            .then((response: any) => {
+                dispatch({ type: 'cart/updateCartItem', payload: { id: item.variant.id, quantity: newQuantity } });
+                fetchCart(); // Refresh the cart to ensure consistency
+            })
+            .catch((error: any) => console.error("Error updating quantity:", error));
+    };
 
     const fetchCart = async () => {
         try {
           const response = await axios.get(`${apiBaseUrl}api/cart/${user?.id}/`);
           
-            const cartData = response.data;
+            const cartData = response.data as Array<{ id: number; variant: number; size: number; quantity: number }>;
             console.log("User ", user?.id, " cart data: ", cartData);
 
             // Récupérer les détails de chaque variante
@@ -167,7 +221,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
                             <div className='flex items-center justify-between'>
                                 <h1 className='text-xl text-gray-800 dark:text-gray-300'>Cart</h1>
                                 <div>
-                                    <IoCloseOutline className='text-2xl cursor-pointer' onClick={()=>setOrderPopup()}/>
+                                    <IoCloseOutline className='text-2xl cursor-pointer' onClick={()=>setOrderPopup(false)}/>
                                 </div>
                             </div>
                             {
@@ -205,7 +259,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
                                                                         value={item?.quantity}
                                                                         className='w-12 border border-gray-300 dark:border-gray-500 dark:bg-gray-800 px-2 py-1 focus:outline-primary/20 focus:outline-1'
                                                                         onChange={(e) => {
-                                                                            handleUpdateQuantity(item, e.target.value);
+                                                                            handleUpdateQuantity(item, Number(e.target.value));
                                                                         }}
                                                                     />
                                                                     <button
@@ -262,7 +316,6 @@ const Cart = ({orderPopup, setOrderPopup}) => {
                                             required
                                             />
                                         <span
-                                            type="button"
                                             onClick={() => setShowPassword(!showPassword)}
                                             className='absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700'>
                                             {showPassword ? <FiEyeOff /> : <FiEye />}
@@ -277,7 +330,7 @@ const Cart = ({orderPopup, setOrderPopup}) => {
                                         handleLogin()
                                     }
                                     else{
-                                        setOrderPopup()
+                                        setOrderPopup(false)
                                     } 
                                 }} className='text-white px-3 py-2 bg-primary hover:bg-secondary 
                                 '>{user?'Purchase now': "Register"}</button>

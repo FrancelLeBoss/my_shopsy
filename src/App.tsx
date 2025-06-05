@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import Navbar from './components/navbar/Navbar'
 import Footer from './components/Footer/Footer'
 import Cart from './components/Cart/Cart'
@@ -59,13 +59,13 @@ useEffect(() => {
 
       <Routes>
           <Route path="/" element={<Home handleOrderPopup={handleOrderPopup} message={message} />} />
-          <Route path="/kids-wear" element={<Boutique _category={1}/>} />
-          <Route path="/men-wear" element={<Boutique _category={2}/>} />
-          <Route path="/women-wear" element={<Boutique _category={3}/>} />
-          <Route path="/product/:productId/:v" element={<Product/>} />
-          <Route path="/login" element = {<Login/>}/>
-          <Route path="/register" element = {<Register/>}/>
-          <Route path="/reset-password" element = {<ResetPassword/>}/>
+          <Route path="/kids-wear" element={<Boutique _category={"1"}/>} />
+          <Route path="/men-wear" element={<Boutique _category={"2"}/>} />
+          <Route path="/women-wear" element={<Boutique _category={"3"}/>} />
+          <Route path="/product/:productId/:v" element={<Product />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<h1 className='text-center text-4xl'>404 Not Found</h1>} />
         </Routes>

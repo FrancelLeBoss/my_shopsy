@@ -29,7 +29,7 @@ const Register = () => {
         const checkEmail = async () => {
             try {
                 const response = await axios.post(`${apiBaseUrl}api/user/email/`, { email });
-                setEmailTaken(response.data.exists);
+                setEmailTaken((response.data as { exists: boolean }).exists);
             } catch (error) {   
                 console.error('Error checking email:', error);
             }
@@ -37,7 +37,7 @@ const Register = () => {
         const checkUsername = async () => {
             try {
                 const response = await axios.post(`${apiBaseUrl}api/user/username/`, { username });
-                setUsernameTaken(response.data.exists);
+                setUsernameTaken((response.data as { exists: boolean }).exists);
             } catch (error) {
                 console.error('Error checking username:', error);
             }
@@ -50,13 +50,27 @@ const Register = () => {
         }
     }, [email, username]);
 
-    const handleSubmit = async (e) => {
+    interface RegisterResponse {
+        // Define the expected response structure from the register API
+        token: string;
+        user: {
+            id: string;
+            email: string;
+            username: string;
+            // Add other user fields as needed
+        };
+        // Add other fields if present in the response
+    }
+
+    interface RegisterFormEvent extends React.FormEvent<HTMLFormElement> {}
+
+    const handleSubmit = async (e: RegisterFormEvent): Promise<void> => {
         e.preventDefault();
         if (invalidEmail || weakPassword || passwordsMismatch || usernameTaken || emailTaken || !policyAccepted) {
             return;
         }
         try {
-            const response = await axios.post(`${apiBaseUrl}api/register/,`, { email, username, password });
+            const response = await axios.post<RegisterResponse>(`${apiBaseUrl}api/register/,`, { email, username, password });
             dispatch(login(response.data));
             Swal.fire(
                     'Logged out!',
@@ -145,11 +159,11 @@ const Register = () => {
                 {passwordsMismatch && <span className='text-red-500 text-xs'>Passwords do not match</span>}
             </div>
             <div className='flex items-center gap-2'>
-                <input type="checkbox" id="terms" className='text-primary' required value={policyAccepted} onChange={()=>setPolicyAccepted(!policyAccepted)}/>
+                <input type="checkbox" id="terms" className='text-primary' required checked={policyAccepted} onChange={()=>setPolicyAccepted(!policyAccepted)}/>
                 <label htmlFor="terms">I agree to the terms and conditions</label>
             </div>
             <div className='flex items-center gap-2'>
-                <input type="checkbox" id="newsletter" className='text-primary' value={newsLetterSubscription} onChange={()=>setNewsLetterSubscription(!newsLetterSubscription)}/>
+                <input type="checkbox" id="newsletter" className='text-primary' checked={newsLetterSubscription} onChange={()=>setNewsLetterSubscription(!newsLetterSubscription)}/>
                 <label htmlFor="newsletter">Subscribe to our newsletter</label>
             </div>
             <button type="submit" className='bg-primary text-white p-2 hover:bg-secondary'>Register</button>

@@ -8,6 +8,17 @@ import { BiCart, BiHeart } from 'react-icons/bi'
 import { useSelector, useDispatch } from 'react-redux'
 import axios from 'axios';
 import Swal from 'sweetalert2'
+import type { RootState } from '../../redux/store'; // Assure that RootState is imported as a type
+
+// Add this declaration to fix the ImportMeta typing error
+interface ImportMetaEnv {
+    readonly VITE_API_BASE_URL: string;
+    // add other env variables here if needed
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv;
+}
 
 
 const Menu = [
@@ -60,29 +71,36 @@ const DropdownLinks = [
         link:"/#"
     },
 ]
-const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
-    const user = useSelector((state) => state.user.user);
+const Navbar: React.FC<{handleOrderPopup: () => void, handleWishlistPopup: () => void}> = ({handleOrderPopup, handleWishlistPopup}) => {
+    // Define a User type according to your user object structure
+    interface User {
+        id: number;
+        username: string;
+        token: string;
+        // add other fields as needed
+    }
+    
+    const user = useSelector((state: RootState) => state.user.user) as User | null;
     const dispatch = useDispatch()
-    const cart = useSelector((state) => state.cart.items);
-    const wishlist = useSelector((state) => state.wishlist.items);
+    const cart = useSelector((state: RootState) => state.cart.items);
+    const wishlist = useSelector((state: RootState) => state.wishlist.items);
     // const [cart, setCart] = useState([]);
     const totalWishlistItems = wishlist?.length;
     // const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
     const totalItems = cart?.length;
-    const totalPrice = cart?.reduce((total, item) => total + item.variant.price * item.quantity, 0);
+    const totalPrice = cart?.reduce((total: number, item:any) => total + item.variant.price * item.quantity, 0);
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-
 
     useEffect(() => {
         if (user) {
             axios
                 .get(`${apiBaseUrl}api/cart/${user?.id}/`)
                 .then(async (response) => {
-                    const cartData = response.data;
+                    const cartData : any = response.data;
 
                     // Récupérer les détails de chaque variante
                     const items = await Promise.all(
-                        cartData.map(async (item) => {
+                        cartData.map(async (item:any) => {
                             const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
                             const sizeResponse = await (await axios.get(`${apiBaseUrl}api/products/size/${item.size}/`))
                             return {
@@ -106,11 +124,11 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
                     }
                 })
                 .then(async (response) => {
-                    const wishlistData = response.data;
+                    const wishlistData : any = response.data;
 
                     // Récupérer les détails de chaque variante
                     const items = await Promise.all(
-                        wishlistData.map(async (item) => {
+                        wishlistData.map(async (item:any) => {
                             const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
                             return {
                                 id: item.id,
@@ -131,7 +149,7 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
         const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('token');
         if (storedUser && token) {
-            dispatch({ type: 'user/login', payload: JSON.parse(storedUser,token) });
+            dispatch({ type: 'user/login', payload: JSON.parse(storedUser) });
         }
     }, []);
 
@@ -145,9 +163,9 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, logout!'
         }).then((result) => {
-            if (result.isConfirmed) {
+            if (result.isConfirmed && user) {
                 axios
-                .post(`${apiBaseUrl}api/logout/`, {token:user.token}, { withCredentials: true })
+                .post(`${apiBaseUrl}api/logout/`, {token: user.token}, { withCredentials: true })
                 localStorage.removeItem('user'); // Supprime les données de l'utilisateur
                 localStorage.removeItem('token'); // Supprime les données de l'utilisateur
                 dispatch({ type: 'user/logout' });
@@ -168,9 +186,9 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
                 <span className='text-gray-500'>on all orders</span>
             </div>
             <div className='flex items-center gap-2 text-gray-600 dark:text-gray-200'>
-                <Link >Help</Link>
+                <Link to="/help">Help</Link>
                 <span className='text-gray-500'>|</span>
-                <Link>Contact</Link>
+                <Link to="/contact">Contact</Link>
                 <span className='text-gray-500'>|</span> 
                 {user ? <Link to="/profile" className='text-primary' title={`${user.username} is connected`}>{user.username}</Link> : <Link to="/login" className='text-primary' title='Login or Register'>Login</Link>}
                 <span className='text-gray-500'>|</span>
@@ -259,3 +277,5 @@ const Navbar = ({handleOrderPopup, handleWishlistPopup}) => {
 }
 
 export default Navbar
+
+

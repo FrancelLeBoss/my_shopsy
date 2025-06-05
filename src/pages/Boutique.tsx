@@ -9,45 +9,63 @@ import { useDispatch, useSelector } from "react-redux";
 
 const ITEMS_PER_PAGE = 6;
 
-export const new_price = (price, discount) => {
-  if (!price || !discount) return 0;
+interface NewPriceParams {
+  price: number;
+  discount: number;
+}
+
+export const new_price = (price: number, discount: number): string => {
+  if (!price || !discount) return "0";
   return (price - (price * discount) / 100).toFixed(2);
 };
 
-export const Boutique = ({_category}) => {
+interface BoutiqueProps {
+  _category: string;
+}
+
+export const Boutique = ({ _category }: BoutiqueProps) => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL; 
   const [showFilters, setShowFilters] = useState(true);
   const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
-  const user = useSelector((state) => state.user.user);
-  const cart = useSelector((state) => state.cart.items);
+  const user = useSelector((state: any) => state.user.user);
+  const cart = useSelector((state: any) => state.cart.items);
   const [genderClicked, setGenderClicked] = useState(false);
   const [priceClicked, setPriceClicked] = useState(false);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const [productHovered, setProductHovered] = useState(-1);
-  const [photoHovered, setPhotoHovered] = useState(null);
-  const [filtered, setFiltered] = useState(null);
-  const [selected, setSelected] = useState(null);
-  const [genderFilter, setGenderFilter] = useState([]);
-  const [priceFilter, setPriceFilter] = useState([]);
+  const [photoHovered, setPhotoHovered] = useState<{ img: string; index: number } | null>(null);
+  interface FilteredType {
+    type: string;
+    value: number;
+  }
+  const [filtered, setFiltered] = useState<FilteredType | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [genderFilter, setGenderFilter] = useState<string[]>([]);
+  const [priceFilter, setPriceFilter] = useState<number[]>([]);
   const [sortingCriteria, setSortingCriteria] = useState("");
   const [displaySorting, setDisplaySorting] = useState(true);
-  const [ProductsData, setProductsData] = useState([]);
-  const [subCategoryList, setSubCategoryList] = useState([]);
-  const [categoryDetails, setCategoryDetails] = useState({});
+  const [ProductsData, setProductsData] = useState<any[]>([]);
+  const [subCategoryList, setSubCategoryList] = useState<any[]>([]);
+  interface CategoryDetails {
+    title?: string;
+    short_desc?: string;
+    // add other properties as needed
+  }
+  const [categoryDetails, setCategoryDetails] = useState<CategoryDetails>({});
   
   useEffect(() => {
-    axios.get(`${apiBaseUrl}api/products/category/${_category}/`)
+    axios.get<any[]>(`${apiBaseUrl}api/products/category/${_category}/`)
       .then(response => setProductsData(response.data))
       .catch(error => console.error("Error fetching data:", error));
 
-    axios.get(`${apiBaseUrl}api/categories/${_category}/subcategories`)
+    axios.get<any[]>(`${apiBaseUrl}api/categories/${_category}/subcategories`)
       .then(response => setSubCategoryList(response.data))
       .catch((error) => {
         console.error("Error fetching subcategories:", error);
       });
 
-    axios.get(`${apiBaseUrl}api/categories/${_category}/`)
+    axios.get<any>(`${apiBaseUrl}api/categories/${_category}/`)
       .then(response => {
         setCategoryDetails(response.data);
       })
@@ -67,7 +85,7 @@ export const Boutique = ({_category}) => {
 
                 // Récupérer les détails de chaque variante
                 const items = await Promise.all(
-                    cartData.map(async (item) => {
+                    (cartData as any[]).map(async (item) => {
                         const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
                         const sizeResponse = await (await axios.get(`${apiBaseUrl}api/products/size/${item.size}/`))
                         return {
@@ -84,7 +102,7 @@ export const Boutique = ({_category}) => {
 
         axios.post(`${apiBaseUrl}api/wishlist/`, { user_id: user?.id })
             .then((response) => {
-                const wishlistData = response.data;
+                const wishlistData = response.data as any[];
                 console.log("User ", user?.id, " wishlist data: ", wishlistData);
                 // Récupérer les détails de chaque variante
                 const items = Promise.all(
@@ -104,9 +122,30 @@ export const Boutique = ({_category}) => {
     }
 }, [user]);
 
-  const productsBySubCategory =(subCat)=>{
+  interface ProductVariantImage {
+    image: string;
+    mainImage: boolean;
+  }
+
+  interface ProductVariant {
+    id: number;
+    price: number;
+    discount: number;
+    images: ProductVariantImage[];
+  }
+
+  interface Product {
+    id: number;
+    title: string;
+    short_desc: string;
+    subCategory: number;
+    gender: string;
+    variants: ProductVariant[];
+  }
+
+  const productsBySubCategory = (subCat: number): Product[] => {
     const filteredProducts = ProductsData.filter(
-      (product) => product.subCategory === subCat
+      (product: Product) => product.subCategory === subCat
     );
     return filteredProducts;
   };
@@ -131,15 +170,61 @@ export const Boutique = ({_category}) => {
     return Math.ceil(ProductFiltered.length / ITEMS_PER_PAGE);
   };
 
-  const getHighestPrice = (products) => {
-    return Math.max(...products.map((p) => p?.variants[0]?.price || 0));
+  interface ProductVariant {
+    id: number;
+    price: number;
+    discount: number;
+    images: ProductVariantImage[];
+  }
+
+  interface ProductVariantImage {
+    image: string;
+    mainImage: boolean;
+  }
+
+  interface Product {
+    id: number;
+    title: string;
+    short_desc: string;
+    subCategory: number;
+    gender: string;
+    variants: ProductVariant[];
+  }
+
+  const getHighestPrice = (products: Product[]): number => {
+    return Math.max(...products.map((p: Product) => p?.variants[0]?.price || 0));
   };
-  const getLowestPrice = (products) => {
-    return Math.min(...products.map((p) => p?.variants[0]?.price || 0));
+  interface ProductVariantImage {
+    image: string;
+    mainImage: boolean;
+  }
+
+  interface ProductVariant {
+    id: number;
+    price: number;
+    discount: number;
+    images: ProductVariantImage[];
+  }
+
+  interface Product {
+    id: number;
+    title: string;
+    short_desc: string;
+    subCategory: number;
+    gender: string;
+    variants: ProductVariant[];
+  }
+
+  const getLowestPrice = (products: Product[]): number => {
+    return Math.min(...products.map((p: Product) => p?.variants[0]?.price || 0));
   };
-  const getMedianPrice = (products) => {
-    const prices = products
-      .map((p) => parseFloat(p?.variants[0]?.price) || 0)
+  interface GetMedianPriceProduct {
+    variants: { price: number | string }[];
+  }
+
+  const getMedianPrice = (products: GetMedianPriceProduct[]): number => {
+    const prices: number[] = products
+      .map((p) => parseFloat(p?.variants[0]?.price as string) || 0)
       .filter((price) => !isNaN(price))
       .sort((a, b) => a - b);
 
@@ -154,11 +239,32 @@ export const Boutique = ({_category}) => {
       : (prices[mid - 1] + prices[mid]) / 2;
   };
 
-const thereIsDiscount = (product) => {
-  if (!product?.variants || product.variants.length === 0) return [];
+interface DiscountResult {
+  discount: number;
+  index: number;
+}
+
+interface ProductVariant {
+  id: number;
+  price: number;
+  discount: number;
+  images: ProductVariantImage[];
+}
+
+interface ProductVariantImage {
+  image: string;
+  mainImage: boolean;
+}
+
+interface ProductWithVariants {
+  variants: ProductVariant[];
+}
+
+const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
+  if (!product?.variants || product.variants.length === 0) return [0, -1];
 
   // Trouver la variante avec le plus grand rabais
-  return product.variants.reduce(
+  return product.variants.reduce<[number, number]>(
     (maxDiscount, variant, index) => {
       if (variant.discount > maxDiscount[0]) {
         return [variant.discount, index];
@@ -193,14 +299,34 @@ const thereIsDiscount = (product) => {
     return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
-  const handleFilterChange = (newSelected) => {
-    setGenderFilter(newSelected);
+  interface FilterChangeEvent {
+    target?: {
+      value: string;
+    };
+  }
+
+  const handleFilterChange = (selected: string | string[]) => {
+    setGenderFilter(Array.isArray(selected) ? selected : [selected]);
   };
-  const handleFilterPriceChange = (newSelected) => {
-    setPriceFilter(newSelected);
+  const handleFilterPriceChange = (selected: string | string[]) => {
+    // Convert selected values to numbers and update priceFilter
+    const selectedArr = Array.isArray(selected) ? selected : [selected];
+    setPriceFilter(selectedArr.map((v) => Number(v)));
   };
-  const handleSorting = (c) => {
-    setSortingCriteria(c);
+  interface HandleSortingArg {
+    // The value passed from CheckboxFilter, e.g. "by name" or "by price"
+    // If you know the exact possible values, you can use a union type:
+    // value: "by name" | "by price" | "default" | "";
+    // For now, using string for flexibility.
+    value: string;
+  }
+
+  const handleSorting = (selected: string | string[]) => {
+    if (Array.isArray(selected)) {
+      setSortingCriteria(selected[0] || "");
+    } else {
+      setSortingCriteria(selected);
+    }
   };
   const sortedProducts = () => {
     if (sortingCriteria === "default" || sortingCriteria === "") {
@@ -212,10 +338,19 @@ const thereIsDiscount = (product) => {
     }
   };
 
-  const indexOfMainImageOfvariant = (variant) => {
-    const index = variant.images.findIndex((image) => image.mainImage === true);
-    return index !== -1 ? index : 0; // Retourne l'index ou 0 si non trouvé
+  interface VariantImage {
+    image: string;
+    mainImage: boolean;
   }
+
+  interface VariantWithImages {
+    images: VariantImage[];
+  }
+
+  const indexOfMainImageOfvariant = (variant: VariantWithImages): number => {
+    const index = variant.images.findIndex((image: VariantImage) => image.mainImage === true);
+    return index !== -1 ? index : 0; // Retourne l'index ou 0 si non trouvé
+  };
 
   useEffect(() => {
     setCurrentPage(1); // Remettre à la première page après filtrage
@@ -340,14 +475,14 @@ const thereIsDiscount = (product) => {
                 <div className={`${priceClicked ? "block" : "hidden"}`}>
                   <CheckboxFilter
                     options={[
-                      getLowestPrice(ProductsData),
-                      getMedianPrice(ProductsData),
-                      getHighestPrice(ProductsData),
+                      getLowestPrice(ProductsData).toString(),
+                      getMedianPrice(ProductsData).toString(),
+                      getHighestPrice(ProductsData).toString(),
                     ]}
                     labels={[
-                      getLowestPrice(ProductsData),
-                      getMedianPrice(ProductsData),
-                      getHighestPrice(ProductsData),
+                      getLowestPrice(ProductsData).toString(),
+                      getMedianPrice(ProductsData).toString(),
+                      getHighestPrice(ProductsData).toString(),
                     ]}
                     onFilterChange={handleFilterPriceChange}
                     extra={"$"}
@@ -419,7 +554,7 @@ const thereIsDiscount = (product) => {
                     //onMouseLeave={() => setProductHovered(-1)}
                   >
                     <div className="flex gap-1 items-center">
-                      {item?.variants.map((element) => (
+                      {item?.variants.map((element: ProductVariant) => (
                         <Link to={`/product/${item.id}/${element?.id}`} key={element.id}>
                           <img
                             src={apiBaseUrl+element?.images[indexOfMainImageOfvariant(element)]?.image}

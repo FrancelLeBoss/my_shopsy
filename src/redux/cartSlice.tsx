@@ -1,6 +1,22 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialState = {
+interface CartItem {
+  id: string;
+  quantity: number;
+  variant?: {
+    price?: number;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+interface CartState {
+  items: CartItem[];
+  totalAmount: number;
+  totalPrice?: number;
+}
+
+const initialState: CartState = {
   items: [], // Liste des articles dans le panier
   totalAmount: 0, // Montant total du panier
 };
@@ -22,10 +38,12 @@ const cartSlice = createSlice({
 
       // Met à jour le prix total avec 2 chiffres après la virgule
       state.totalPrice = state.items.length > 0
-        ? state.items.reduce((total, item) => {
-            const price = item.variant?.price || 0;
-            return total + price * item.quantity;
-          }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+        ? Number(
+            state.items.reduce((total, item) => {
+              const price = item.variant?.price || 0;
+              return total + price * item.quantity;
+            }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+          )
         : 0;
     },
 
@@ -40,10 +58,12 @@ const cartSlice = createSlice({
 
       // Met à jour le prix total avec 2 chiffres après la virgule
       state.totalPrice = state.items.length > 0
-        ? state.items.reduce((total, item) => {
-            const price = item.variant?.price || 0;
-            return total + price * item.quantity;
-          }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+        ? Number(
+            state.items.reduce((total, item) => {
+              const price = item.variant?.price || 0;
+              return total + price * item.quantity;
+            }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+          )
         : 0;
     },
 
@@ -54,10 +74,12 @@ const cartSlice = createSlice({
 
       // Met à jour le prix total avec 2 chiffres après la virgule
       state.totalPrice = state.items.length > 0
-        ? state.items.reduce((total, item) => {
-            const price = item.variant?.price || 0;
-            return total + price * item.quantity;
-          }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+        ? Number(
+            state.items.reduce((total, item) => {
+              const price = item.variant?.price || 0;
+              return total + price * item.quantity;
+            }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+          )
         : 0;
     },
 
@@ -71,10 +93,12 @@ const cartSlice = createSlice({
     updateCart: (state, action) => {
       state.items = action.payload; // Remplace tous les articles du panier
       state.totalPrice = state.items.length > 0
-        ? state.items.reduce((total, item) => {
-            const price = item.variant?.price || 0;
-            return total + price * item.quantity;
-          }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+        ? Number(
+            state.items.reduce((total, item) => {
+              const price = item.variant?.price || 0;
+              return total + price * item.quantity;
+            }, 0).toFixed(2) // Limite à 2 chiffres après la virgule
+          )
         : 0;
     },
   },

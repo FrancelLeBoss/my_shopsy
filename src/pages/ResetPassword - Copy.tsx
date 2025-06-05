@@ -7,34 +7,47 @@ import axios from 'axios'
 
 const ResetPassword = () => {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+    const navigate = useNavigate();
     const [emailVerified, setEmailVerified] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
     const [emailExists, setEmailExists] = useState(false);
     const [email, setEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [code, setCode] = useState('');
-    const [codeSent, setCodeSent] = useState(null);
-    const [error, setError] = useState(null);
+    const [codeSent, setCodeSent] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const dispatch = useDispatch();
 
     const checkEmail = async () => {
         try {
           setError(null);
             const response = await axios.post(`${apiBaseUrl}api/user/email/`, { email });
-            setEmailExists(response.data.exists);
+            setEmailExists((response.data as EmailExistsResponse).exists);
         } catch (error) {   
             setError('Unknown email. Please try again.');
             console.error('Error checking email:', error);
         }
     };
 
-    const handleSubmit = async (e) => {
+    interface VerificationCodeResponse {
+        code: string;
+    }
+
+    interface EmailExistsResponse {
+        exists: boolean;
+    }
+
+    interface ResetPasswordResponse {
+        // Define properties if needed, or leave empty if not used
+    }
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!email) {
             setError('Email is required.');
             return;
         }
-        checkEmail()
+        checkEmail();
         if (error || emailExists === false) {
             if (emailExists === false) {
                 setError('Email does not exist. Please try again.');
@@ -45,7 +58,7 @@ const ResetPassword = () => {
         if (!emailVerified && !emailSent) {
             // Send verification code to email
             try {
-                const response = await axios.post(`${apiBaseUrl}api/user/send_verification_code/`, { email });
+                const response = await axios.post<VerificationCodeResponse>(`${apiBaseUrl}api/user/send_verification_code/`, { email });
                 if (response.status === 200) {
                     setEmailSent(true);
                     setCodeSent(response.data.code); 
@@ -71,7 +84,7 @@ const ResetPassword = () => {
             setCodeSent(null); // Clear the code after verification
             // Reset password
             try {
-                const response = await axios.post(`${apiBaseUrl}api/user/reset_password/`, { email, newPassword });
+                const response = await axios.post<ResetPasswordResponse>(`${apiBaseUrl}api/user/reset_password/`, { email, newPassword });
                 if (response.status === 200) {
                     Swal.fire({
                         title: 'Password Reset Successful',

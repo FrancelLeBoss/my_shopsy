@@ -6,7 +6,12 @@ import Banner from "../components/Banner/Banner";
 import Subscribe from "../components/Subscribe/Subscribe";
 import Testimony from "../components/Testimony/Testimony";
 
-export const Home = ({handleOrderPopup, message}) => {
+interface HomeProps {
+  handleOrderPopup: () => void;
+  message: string;
+}
+
+export const Home: React.FC<HomeProps> = ({handleOrderPopup, message}) => {
   return (
     <div>
       <Hero handleOrderPopup={handleOrderPopup} message ={message} />

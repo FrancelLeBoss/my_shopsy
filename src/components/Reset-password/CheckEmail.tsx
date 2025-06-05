@@ -2,12 +2,36 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-const CheckEmail = ({ email, setEmail, setStep, setCodeSent }) => {
+interface CheckEmailProps {
+  email: string;
+  setEmail: (email: string) => void;
+  setStep: (step: number) => void;
+  setCodeSent: (code: string) => void;
+}
+
+const CheckEmail: React.FC<CheckEmailProps> = ({ email, setEmail, setStep, setCodeSent }) => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleCheckEmail = async (e) => {
+  interface EmailExistsResponse {
+    exists: boolean;
+  }
+
+  interface SendVerificationCodeResponse {
+    code: string;
+  }
+
+  interface ApiError {
+    response?: {
+      status: number;
+      data: {
+        message?: string;
+      };
+    };
+  }
+
+  const handleCheckEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -25,15 +49,15 @@ const CheckEmail = ({ email, setEmail, setStep, setCodeSent }) => {
 
     try {
       // Vérifier si l'e-mail existe et envoyer le code en une seule requête
-      let response = await axios.post(`${apiBaseUrl}api/user/email/`, { email });
-      if (response.data.exists === false) {
+      const emailExistsResponse = await axios.post<EmailExistsResponse>(`${apiBaseUrl}api/user/email/`, { email });
+      if (emailExistsResponse.data.exists === false) {
         setError('Email does not exist. Please try again.');
         return;
       }
-      response = await axios.post(`${apiBaseUrl}api/user/send_verification_code/`, { email });
-      if (response.status === 200) {
+      const sendCodeResponse = await axios.post<SendVerificationCodeResponse>(`${apiBaseUrl}api/user/send_verification_code/`, { email });
+      if (sendCodeResponse.status === 200) {
         // Si le code est envoyé avec succès, stocker le code dans l'état
-        setCodeSent(response.data.code);
+        setCodeSent(sendCodeResponse.data.code);
         Swal.fire({
           title: 'Verification Code Sent',
           text: 'A verification code has been sent to your email.',
@@ -42,9 +66,10 @@ const CheckEmail = ({ email, setEmail, setStep, setCodeSent }) => {
         });
         setStep(2); // Passer à l'étape suivante
       }
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
-        setError(error.response.data.message || 'Email not found. Please try again.');
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      if (err.response && err.response.status === 404) {
+        setError(err.response.data.message || 'Email not found. Please try again.');
       } else {
         setError('Error sending verification code. Please try again.');
       }
