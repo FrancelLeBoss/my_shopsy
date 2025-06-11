@@ -20,7 +20,7 @@ axiosInstance.interceptors.request.use(
     const state = store.getState();
     const accessToken = state.user.accessToken; // Récupère le token actuel
 
-    console.log(`[Axios Interceptor] URL: ${config.url}, Token found: ${!!accessToken}`); // Ajouté pour le débogage
+    //console.log(`[Axios Interceptor] URL: ${config.url}, Token found: ${!!accessToken}`); // Ajouté pour le débogage
     // Check if headers exist, and if not, initialize them as an empty object
     if (!config.headers) {
       config.headers = {};

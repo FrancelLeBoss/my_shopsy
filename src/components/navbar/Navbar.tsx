@@ -6,9 +6,13 @@ import { FaRegCaretSquareDown } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { BiCart, BiHeart } from 'react-icons/bi'
 import { useSelector, useDispatch } from 'react-redux'
-import axios from 'axios';
+import { reset as resetCart } from '../../redux/cartSlice';     // Importez reset de cartSlice et renommez-le
+import { reset as resetWishlist } from '../../redux/WishlistSlice'; // Importez reset de WishlistSlice et renommez-le
+// ... (le reste de votre code)
+import axiosInstance from '../../api/axiosInstance'
 import Swal from 'sweetalert2'
 import type { RootState } from '../../redux/store'; // Assure that RootState is imported as a type
+import { logout, rehydrateAuth } from '../../redux/userSlice'
 
 // Add this declaration to fix the ImportMeta typing error
 interface ImportMetaEnv {
@@ -73,77 +77,76 @@ const DropdownLinks = [
 ]
 const Navbar: React.FC<{handleOrderPopup: () => void, handleWishlistPopup: () => void}> = ({handleOrderPopup, handleWishlistPopup}) => {
     // Define a User type according to your user object structure
-    interface User {
-        id: number;
-        username: string;
-        token: string;
+    interface UserState {
+        user:{
+            id: number;
+            username: string;
+            email?: string;
+        }
+        accessToken: string | null;
+        refreshToken: string | null;
+        isAuthenticated: boolean;
         // add other fields as needed
     }
     
-    const user = useSelector((state: RootState) => state.user.user) as User | null;
+    const {user,isAuthenticated, refreshToken} = useSelector((state: RootState) => state.user);
     const dispatch = useDispatch()
     const cart = useSelector((state: RootState) => state.cart.items);
     const wishlist = useSelector((state: RootState) => state.wishlist.items);
     // const [cart, setCart] = useState([]);
-    const totalWishlistItems = wishlist?.length;
+    const totalWishlistItems = wishlist?.length || 0; // Assuming wishlist is an array of items
     // const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
-    const totalItems = cart?.length;
+    const totalItems = cart?.length || 0;;
     const totalPrice = cart?.reduce((total: number, item:any) => total + item.variant.price * item.quantity, 0);
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
+    // Rehydrate user state from localStorage on initial load
     useEffect(() => {
-        if (user) {
-            axios
-                .get(`${apiBaseUrl}api/cart/${user?.id}/`)
+        dispatch(rehydrateAuth());
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (isAuthenticated && user?.id) {
+             // Requête pour le panier
+            axiosInstance
+                .get(`${apiBaseUrl}api/cart/${user.id}/`) // Utilisez axiosInstance
                 .then(async (response) => {
                     const cartData : any = response.data;
-
-                    // Récupérer les détails de chaque variante
                     const items = await Promise.all(
                         cartData.map(async (item:any) => {
-                            const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
-                            const sizeResponse = await (await axios.get(`${apiBaseUrl}api/products/size/${item.size}/`))
+                            // Utilisez axiosInstance pour les requêtes imbriquées
+                            const variantResponse = await axiosInstance.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
+                            const sizeResponse = await axiosInstance.get(`${apiBaseUrl}api/products/size/${item.size}/`);
                             return {
                                 id: item.id,
-                                variant: variantResponse.data, // Stocker la variante entière
-                                size: sizeResponse.data, // Stocker la taille entière
+                                variant: variantResponse.data,
+                                size: sizeResponse.data,
                                 quantity: item.quantity,
                             };
                         })
                     );
-
-                    // Dispatch pour mettre à jour le panier dans Redux
                     dispatch({ type: 'cart/updateCart', payload: items });
                 })
-                .catch((error) => console.error("Error fetching data:", error));
-
-            axios
-                .post(`${apiBaseUrl}api/wishlist/`, { user_id: user.id }, {
-                    headers: {
-                        Authorization: `Bearer ${user.token}`
-                    }
-                })
+                .catch((error) => console.error("Error fetching cart data:", error));
+            // Requête pour la wishlist
+            axiosInstance
+                .get(`${apiBaseUrl}api/wishlist/`) // requete simplifiee pour la wishlist
                 .then(async (response) => {
                     const wishlistData : any = response.data;
-
-                    // Récupérer les détails de chaque variante
                     const items = await Promise.all(
                         wishlistData.map(async (item:any) => {
-                            const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
+                            const variantResponse = await axiosInstance.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
                             return {
                                 id: item.id,
-                                variant: variantResponse.data, // Stocker la variante entière
+                                variant: variantResponse.data,
                             };
                         })
                     );
-                     console.log("wishlist items navbar: ", items)
-
-                    // Dispatch pour mettre à jour le panier dans Redux
                     dispatch({ type: 'wishlist/updateWishlist', payload: items });
                 })
-                .catch((error) => console.error("Error fetching data:", error));
+                .catch((error) => console.error("Error fetching wishlist data:", error));
         }
-    }, [user]);
+    }, [isAuthenticated, user?.id, dispatch, apiBaseUrl]);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -153,29 +156,43 @@ const Navbar: React.FC<{handleOrderPopup: () => void, handleWishlistPopup: () =>
         }
     }, []);
 
+    // --- LOGIQUE DE DÉCONNEXION MISE À JOUR ---
     const handleLogout = () => {
         Swal.fire({
-            title: 'Logout',
-            text: "Are you sure you want to logout?",   
+            title: 'Déconnexion',
+            text: "Êtes-vous sûr de vouloir vous déconnecter ?", 
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#fea928',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, logout!'
-        }).then((result) => {
-            if (result.isConfirmed && user) {
-                axios
-                .post(`${apiBaseUrl}api/logout/`, {token: user.token}, { withCredentials: true })
-                localStorage.removeItem('user'); // Supprime les données de l'utilisateur
-                localStorage.removeItem('token'); // Supprime les données de l'utilisateur
-                dispatch({ type: 'user/logout' });
+            confirmButtonText: 'Oui, me déconnecter !'
+        }).then(async (result) => { // Marquez la fonction comme 'async' car nous pourrions faire une requête
+            if (result.isConfirmed) {
+                if (refreshToken) { // N'envoyez au backend que si vous avez un refresh token (pour la blacklist)
+                    try {
+                        // Si vous utilisez la Blacklist de JWT :
+                        // Envoyez le refreshToken au backend pour le mettre sur liste noire
+                        await axiosInstance.post(`${apiBaseUrl}api/token/blacklist/`, {
+                            refresh: refreshToken // Envoyez le refresh token à blacklister
+                        });
+                        console.log("Refresh token blacklisted successfully.");
+                    } catch (error) {
+                        console.error("Error blacklisting refresh token:", error);
+                        // Gérer l'erreur, mais continuer la déconnexion côté client
+                    }
+                }
+
+                // Toujours effectuer la déconnexion côté client via Redux
+                dispatch(logout()); 
+                dispatch(resetCart());      // Dispatch de l'action de réinitialisation du panier
+                dispatch(resetWishlist()); // Dispatch de l'action de réinitialisation de la wishlist
                 Swal.fire(
-                    'Logged out!',
-                    'You have been logged out.',
+                    'Déconnecté !',
+                    'Vous avez été déconnecté avec succès.',
                     'success'
-                )
+                );
             }
-        })
+        });
     }
 
   return (

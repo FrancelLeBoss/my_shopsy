@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 
-const VerifyCode = ({ email, codeSent, setStep }) => {
-  const [code, setCode] = useState('');
-  const [error, setError] = useState(null);
+interface VerifyCodeProps {
+  email: string;
+  codeSent: string;
+  setStep: (step: number) => void;
+}
 
-  const handleVerifyCode = (e) => {
+const VerifyCode: React.FC<VerifyCodeProps> = ({ email, codeSent, setStep }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleVerifyCode = (e:any) => {
     e.preventDefault();
     if (code !== codeSent) {
       setError('Invalid verification code. Please try again.');

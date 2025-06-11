@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FiFilter } from "react-icons/fi";
 import { BiDownArrowAlt } from "react-icons/bi";
 import { GrDown, GrUp } from "react-icons/gr";
 import CheckboxFilter from "../components/general/CheckBox";
 import { Link } from "react-router-dom";
-import axios from "axios";
+// ANCIEN : import axios from "axios";
+import axiosInstance from "../api/axiosInstance"; // NOUVEAU : Importer votre instance Axios configurée
 import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from '../redux/store'; // ASSUREZ-VOUS QUE CE CHEMIN EST CORRECT VERS VOTRE FICHIER STORE.TSX OU STORE.TS
+import type { User } from '../types/User';
+import { Product, ProductVariant, VariantImage, VariantWithImages } from "../types/Product";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -24,12 +28,15 @@ interface BoutiqueProps {
 }
 
 export const Boutique = ({ _category }: BoutiqueProps) => {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL; 
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const [showFilters, setShowFilters] = useState(true);
   const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
-  const user = useSelector((state: any) => state.user.user);
-  const cart = useSelector((state: any) => state.cart.items);
+
+  // Utilisation de RootState pour le typage du sélecteur
+  const user: User | null = useSelector((state: RootState) => state.user.user);
+  const cart = useSelector((state: RootState) => state.cart.items); // Assurez-vous que 'cart' existe dans votre RootState
+
   const [genderClicked, setGenderClicked] = useState(false);
   const [priceClicked, setPriceClicked] = useState(false);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -53,19 +60,19 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
     // add other properties as needed
   }
   const [categoryDetails, setCategoryDetails] = useState<CategoryDetails>({});
-  
-  useEffect(() => {
-    axios.get<any[]>(`${apiBaseUrl}api/products/category/${_category}/`)
-      .then(response => setProductsData(response.data))
-      .catch(error => console.error("Error fetching data:", error));
 
-    axios.get<any[]>(`${apiBaseUrl}api/categories/${_category}/subcategories`)
+  useEffect(() => {
+    axiosInstance.get<any[]>(`api/products/category/${_category}/`)
+      .then(response => setProductsData(response.data))
+      .catch(error => console.error("Error fetching products data:", error)); // Message d'erreur plus spécifique
+
+    axiosInstance.get<any[]>(`api/categories/${_category}/subcategories`)
       .then(response => setSubCategoryList(response.data))
       .catch((error) => {
         console.error("Error fetching subcategories:", error);
       });
 
-    axios.get<any>(`${apiBaseUrl}api/categories/${_category}/`)
+    axiosInstance.get<any>(`api/categories/${_category}/`)
       .then(response => {
         setCategoryDetails(response.data);
       })
@@ -73,76 +80,53 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
         console.error("Error fetching category details:", error);
       });
 
-  }, [_category]);
+  }, [_category, apiBaseUrl]); // apiBaseUrl est déjà inclus dans axiosInstance.baseURL, donc pas strictement nécessaire ici mais ne nuit pas.
 
   useEffect(() => {
-    if (user) {
-        axios
-            .get(`${apiBaseUrl}api/cart/${user?.id}/`)
-            .then(async (response) => {
-                const cartData = response.data;
-                console.log("User ", user?.id, " cart data: ", cartData);
+    if (user && user.id) {
+      axiosInstance
+        .get(`api/cart/${user.id}/`)
+        .then(async (response) => {
+          const cartData = response.data;
+          console.log("User ", user.id, " cart data: ", cartData);
 
-                // Récupérer les détails de chaque variante
-                const items = await Promise.all(
-                    (cartData as any[]).map(async (item) => {
-                        const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
-                        const sizeResponse = await (await axios.get(`${apiBaseUrl}api/products/size/${item.size}/`))
-                        return {
-                            id: item.id,
-                            variant: variantResponse.data, // Stocker la variante entière
-                            size: sizeResponse.data, // Stocker la taille entière
-                            quantity: item.quantity,
-                        };
-                    })
-                );
-                dispatch({ type: 'cart/updateCart', payload: items });
+          const items = await Promise.all(
+            (cartData as any[]).map(async (item) => {
+              // MODIFICATION ICI : Utilisation de axiosInstance pour les détails de variante/taille
+              const variantResponse = await axiosInstance.get(`api/products/variant/${item.variant}/`);
+              const sizeResponse = await axiosInstance.get(`api/products/size/${item.size}/`);
+              return {
+                id: item.id,
+                variant: variantResponse.data,
+                size: sizeResponse.data,
+                quantity: item.quantity,
+              };
             })
-            .catch((error) => console.error("Error fetching data:", error));
+          );
+          dispatch({ type: 'cart/updateCart', payload: items });
+        })
+        .catch((error) => console.error("Error fetching cart data:", error));
 
-        axios.post(`${apiBaseUrl}api/wishlist/`, { user_id: user?.id })
-            .then((response) => {
-                const wishlistData = response.data as any[];
-                console.log("User ", user?.id, " wishlist data: ", wishlistData);
-                // Récupérer les détails de chaque variante
-                const items = Promise.all(
-                    wishlistData.map(async (item) => {
-                        const variantResponse = await axios.get(`${apiBaseUrl}api/products/variant/${item.variant}/`);
-                        const sizeResponse = await (await axios.get(`${apiBaseUrl}api/products/size/${item.size}/`))
-                        return {
-                            id: item.id,
-                            variant: variantResponse.data, // Stocker la variante entière
-                            size: sizeResponse.data, // Stocker la taille entière
-                        };
-                    })
-                );
-                dispatch({ type: 'wishlist/updateWishlist', payload: items });
+      axiosInstance.post(`api/wishlist/`, { user_id: user.id })
+        .then(async (response) => {
+          const wishlistData = response.data as any[];
+          console.log("User ", user.id, " wishlist data: ", wishlistData);
+          const items = await Promise.all(
+            wishlistData.map(async (item) => {
+              const variantResponse = await axiosInstance.get(`api/products/variant/${item.variant}/`);
+              const sizeResponse = await axiosInstance.get(`api/products/size/${item.size}/`);
+              return {
+                id: item.id,
+                variant: variantResponse.data,
+                size: sizeResponse.data,
+              };
             })
-            .catch((error) => console.error("Error fetching data:", error));  
+          );
+          dispatch({ type: 'wishlist/updateWishlist', payload: items });
+        })
+        .catch((error) => console.error("Error fetching wishlist data:", error));
     }
-}, [user]);
-
-  interface ProductVariantImage {
-    image: string;
-    mainImage: boolean;
-  }
-
-  interface ProductVariant {
-    id: number;
-    price: number;
-    discount: number;
-    images: ProductVariantImage[];
-  }
-
-  interface Product {
-    id: number;
-    title: string;
-    short_desc: string;
-    subCategory: number;
-    gender: string;
-    variants: ProductVariant[];
-  }
-
+  }, [user, apiBaseUrl, dispatch]);
   const productsBySubCategory = (subCat: number): Product[] => {
     const filteredProducts = ProductsData.filter(
       (product: Product) => product.subCategory === subCat
@@ -170,54 +154,14 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
     return Math.ceil(ProductFiltered.length / ITEMS_PER_PAGE);
   };
 
-  interface ProductVariant {
-    id: number;
-    price: number;
-    discount: number;
-    images: ProductVariantImage[];
-  }
-
-  interface ProductVariantImage {
-    image: string;
-    mainImage: boolean;
-  }
-
-  interface Product {
-    id: number;
-    title: string;
-    short_desc: string;
-    subCategory: number;
-    gender: string;
-    variants: ProductVariant[];
-  }
-
   const getHighestPrice = (products: Product[]): number => {
     return Math.max(...products.map((p: Product) => p?.variants[0]?.price || 0));
   };
-  interface ProductVariantImage {
-    image: string;
-    mainImage: boolean;
-  }
-
-  interface ProductVariant {
-    id: number;
-    price: number;
-    discount: number;
-    images: ProductVariantImage[];
-  }
-
-  interface Product {
-    id: number;
-    title: string;
-    short_desc: string;
-    subCategory: number;
-    gender: string;
-    variants: ProductVariant[];
-  }
 
   const getLowestPrice = (products: Product[]): number => {
     return Math.min(...products.map((p: Product) => p?.variants[0]?.price || 0));
   };
+
   interface GetMedianPriceProduct {
     variants: { price: number | string }[];
   }
@@ -239,41 +183,29 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
       : (prices[mid - 1] + prices[mid]) / 2;
   };
 
-interface DiscountResult {
-  discount: number;
-  index: number;
-}
+  interface DiscountResult {
+    discount: number;
+    index: number;
+  }
 
-interface ProductVariant {
-  id: number;
-  price: number;
-  discount: number;
-  images: ProductVariantImage[];
-}
+  interface ProductWithVariants {
+    variants: ProductVariant[];
+  }
 
-interface ProductVariantImage {
-  image: string;
-  mainImage: boolean;
-}
+  const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
+    if (!product?.variants || product.variants.length === 0) return [0, -1];
 
-interface ProductWithVariants {
-  variants: ProductVariant[];
-}
-
-const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
-  if (!product?.variants || product.variants.length === 0) return [0, -1];
-
-  // Trouver la variante avec le plus grand rabais
-  return product.variants.reduce<[number, number]>(
-    (maxDiscount, variant, index) => {
-      if (variant.discount > maxDiscount[0]) {
-        return [variant.discount, index];
-      }
-      return maxDiscount;
-    },
-    [0, -1] // Valeur initiale : [discount, index]
-  );
-};
+    // Trouver la variante avec le plus grand rabais
+    return product.variants.reduce<[number, number]>(
+      (maxDiscount, variant, index) => {
+        if (variant.discount > maxDiscount[0]) {
+          return [variant.discount, index];
+        }
+        return maxDiscount;
+      },
+      [0, -1] // Valeur initiale : [discount, index]
+    );
+  };
 
   const displayedProducts = () => {
     let filteredProducts = ProductsData;
@@ -299,12 +231,6 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
     return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
-  interface FilterChangeEvent {
-    target?: {
-      value: string;
-    };
-  }
-
   const handleFilterChange = (selected: string | string[]) => {
     setGenderFilter(Array.isArray(selected) ? selected : [selected]);
   };
@@ -313,13 +239,6 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
     const selectedArr = Array.isArray(selected) ? selected : [selected];
     setPriceFilter(selectedArr.map((v) => Number(v)));
   };
-  interface HandleSortingArg {
-    // The value passed from CheckboxFilter, e.g. "by name" or "by price"
-    // If you know the exact possible values, you can use a union type:
-    // value: "by name" | "by price" | "default" | "";
-    // For now, using string for flexibility.
-    value: string;
-  }
 
   const handleSorting = (selected: string | string[]) => {
     if (Array.isArray(selected)) {
@@ -336,17 +255,8 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
     } else if (sortingCriteria === "by price") {
       return displayedProducts().sort((a, b) => a?.variants[0]?.price - b?.variants[0]?.price);
     }
+    return displayedProducts(); // Retourne la liste non triée par défaut si le critère n'est pas reconnu
   };
-
-  interface VariantImage {
-    image: string;
-    mainImage: boolean;
-  }
-
-  interface VariantWithImages {
-    images: VariantImage[];
-  }
-
   const indexOfMainImageOfvariant = (variant: VariantWithImages): number => {
     const index = variant.images.findIndex((image: VariantImage) => image.mainImage === true);
     return index !== -1 ? index : 0; // Retourne l'index ou 0 si non trouvé
@@ -354,26 +264,26 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
 
   useEffect(() => {
     setCurrentPage(1); // Remettre à la première page après filtrage
-  }, [filtered, genderFilter]);
+  }, [filtered, genderFilter, priceFilter]);
 
   return (
     <div className="bg-gray-100 min-h-screen pb-4 dark:bg-gray-950">
       {/* Header */}
       <div className="bg-primary/40 py-3">
         <div className="text-xl text-secondary text-center font-semibold uppercase">
-        {categoryDetails?.title ? categoryDetails.title : "Loading..."}
+          {categoryDetails?.title ? categoryDetails.title : "Loading..."}
         </div>
       </div>
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-600 dark:text-gray-200 font-medium capitalize">
-          Home / {categoryDetails?.title?categoryDetails.title:<span className="animate-pulse">Loading...</span>}
+          Home / {categoryDetails?.title ? categoryDetails.title : <span className="animate-pulse">Loading...</span>}
         </div>
 
         {/* Title & Sorting */}
         <div className="flex justify-between items-center mt-3">
           <h1 className="lg:text-3xl md:text-2xl text-xl font-medium">
-            {categoryDetails?.short_desc ? categoryDetails.short_desc + "("+ProductsData?.length+")" : "Loading..."}
+            {categoryDetails?.short_desc ? categoryDetails.short_desc + "(" + ProductsData?.length + ")" : "Loading..."}
           </h1>
           <div className="flex items-center gap-4 text-base md:text-lg font-normal">
             <button
@@ -394,10 +304,9 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
               </button>
               {
                 <div
-                  className={`${
-                    displaySorting ? "" : "hidden"
-                  } dark:bg-gray-900 bg-gray-50 w-full p-3 top-8
-                 absolute text-xs text-gray-700`}
+                  className={`${displaySorting ? "" : "hidden"
+                    } dark:bg-gray-900 bg-gray-50 w-full p-3 top-8
+                    absolute text-xs text-gray-700`}
                 >
                   <CheckboxFilter
                     options={["by name", "by price"]}
@@ -423,12 +332,11 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
                 <ul className="mt-2 space-y-2 text-gray-400 fon">
                   {subCategoryList.map((category) => (
                     <li
-                      key={category?.id} // Utilisez une clé unique basée sur `category.id`
-                      className={`cursor-pointer hover:text-primary capitalize ${
-                        selected === category?.id
+                      key={category?.id}
+                      className={`cursor-pointer hover:text-primary capitalize ${selected === category?.id
                           ? "text-primary"
                           : " dark:text-gray-400 text-gray-700"
-                      }`}
+                        }`}
                       onClick={() => {
                         if (filtered?.value !== category?.id) {
                           setFiltered({
@@ -480,12 +388,12 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
                       getHighestPrice(ProductsData).toString(),
                     ]}
                     labels={[
-                      getLowestPrice(ProductsData).toString(),
-                      getMedianPrice(ProductsData).toString(),
-                      getHighestPrice(ProductsData).toString(),
+                      getLowestPrice(ProductsData).toFixed(2) + '$',
+                      getMedianPrice(ProductsData).toFixed(2) + '$',
+                      getHighestPrice(ProductsData).toFixed(2) + '$',
                     ]}
                     onFilterChange={handleFilterPriceChange}
-                    extra={"$"}
+                    uniqueSelection={true}
                   />
                 </div>
               </div>
@@ -495,16 +403,15 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
 
           {/* Product Grid */}
           <div
-            className={`grid gap-3 ${
-              showFilters ? "w-3/4" : "w-full lg:grid-cols-4"
-            } grid-cols-1 sm:grid-cols-2 md:grid-cols-3 pl-4`}
+            className={`grid gap-3 ${showFilters ? "w-3/4" : "w-full lg:grid-cols-4"
+              } grid-cols-1 sm:grid-cols-2 md:grid-cols-3 pl-4`}
           >
             {sortedProducts()?.map((item) => (
               <div
                 className="dark:bg-gray-900 bg-white pb-2 shadow-md hover:shadow-lg "
                 key={item.id}
               >
-                <Link to={`/product/${item.id}/${productHovered === item.id && photoHovered?.index !== undefined?photoHovered.index :item.variants[0].id}`}>
+                <Link to={`/product/${item.id}/${productHovered === item.id && photoHovered?.index !== undefined ? photoHovered.index : item.variants[0].id}`}>
                   <img
                     src={
                       productHovered === item.id && photoHovered?.index !== undefined
@@ -533,13 +440,13 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
                     <div
                       className={`flex items-center text-secondary font-medium text-lg `}
                     >
-                      ${thereIsDiscount(item).length > 0
-                        ? new_price(item?.variants[0]?.price, item.variants[thereIsDiscount(item)[1]]?.discount)
+                      ${thereIsDiscount(item)[0] > 0
+                        ? new_price(item?.variants[thereIsDiscount(item)[1]]?.price, item.variants[thereIsDiscount(item)[1]]?.discount)
                         : item?.variants[0]?.price}
-                      {thereIsDiscount(item).length > 0 && (
-                        <s className="ml-1 text-gray-500">${item?.variants[0]?.price}</s>
+                      {thereIsDiscount(item)[0] > 0 && (
+                        <s className="ml-1 text-gray-500">${item?.variants[thereIsDiscount(item)[1]]?.price}</s>
                       )}
-                      {thereIsDiscount(item).length > 0 && (
+                      {thereIsDiscount(item)[0] > 0 && (
                         <h3 className="ml-1 text-green-600">
                           {item.variants[thereIsDiscount(item)[1]]?.discount}% discount
                         </h3>
@@ -551,18 +458,16 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
                 {productHovered === item.id && (
                   <div
                     className="mt-2 p-2 rounded-md text-sm text-gray-700 flex flex-col gap-2"
-                    //onMouseLeave={() => setProductHovered(-1)}
                   >
                     <div className="flex gap-1 items-center">
                       {item?.variants.map((element: ProductVariant) => (
                         <Link to={`/product/${item.id}/${element?.id}`} key={element.id}>
                           <img
-                            src={apiBaseUrl+element?.images[indexOfMainImageOfvariant(element)]?.image}
+                            src={apiBaseUrl + element?.images[indexOfMainImageOfvariant(element)]?.image}
                             className="w-10 h-10 hover:outline hover:outline-primary hover:outline-1"
                             onMouseEnter={() =>
-                              setPhotoHovered({ img: apiBaseUrl+element?.images[indexOfMainImageOfvariant(element)]?.image, index: element.id })
+                              setPhotoHovered({ img: apiBaseUrl + element?.images[indexOfMainImageOfvariant(element)]?.image, index: element.id })
                             }
-                            //onMouseLeave={() => setPhotoHovered(null)}
                             onClick={() =>
                               (window.location.href = `/product/${item.id}/${element?.id}`)
                             }
@@ -573,16 +478,17 @@ const thereIsDiscount = (product: ProductWithVariants): [number, number] => {
                     <div
                       className={`flex items-center text-secondary font-medium text-lg `}
                     >
-                      ${thereIsDiscount(item).length > 0
+                      ${thereIsDiscount(item)[0] > 0
                         ? new_price(
-                            item?.variants[0]?.price,
-                            item.variants[thereIsDiscount(item)[1]]?.discount
-                          ):  
-                          item?.variants[0]?.price}
-                      {thereIsDiscount(item).length > 0 && (
-                        <s className="ml-1 text-gray-500">${item?.variants[0]?.price}</s>
+                          item?.variants[thereIsDiscount(item)[1]]?.price,
+                          item.variants[thereIsDiscount(item)[1]]?.discount
+                        )
+                        :
+                        item?.variants[0]?.price}
+                      {thereIsDiscount(item)[0] > 0 && (
+                        <s className="ml-1 text-gray-500">${item?.variants[thereIsDiscount(item)[1]]?.price}</s>
                       )}
-                      {thereIsDiscount(item).length > 0 && (
+                      {thereIsDiscount(item)[0] > 0 && (
                         <h3 className="ml-1 text-green-600">
                           {item.variants[thereIsDiscount(item)[1]]?.discount}% discount
                         </h3>

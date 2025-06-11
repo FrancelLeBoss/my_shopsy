@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { login } from '../redux/userSlice';
-// Import your custom axiosInstance (which includes the interceptors)
 import axiosInstance from '../api/axiosInstance';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import Swal from 'sweetalert2'
 
 const Login = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL; // Your API base URL from .env
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const activated = searchParams.get('activated');
   const [email, setEmail] = useState(''); // Keep this if your backend supports login by email
   const [username, setUsername] = useState(''); // Essential for simplejwt's default TokenObtainPairView
   const [password, setPassword] = useState('');
@@ -86,7 +88,18 @@ const Login = () => {
       setLoading(false); // Always stop loading, regardless of success or failure
     }
   };
-
+  useEffect(() => {
+    // If the user is activated, you can show a message or redirect them
+    if (activated) {
+      Swal.fire({
+        title: 'Compte activé',
+        text: 'Votre compte a été activé avec succès. Vous pouvez maintenant vous connecter.',
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+      navigate('/login');
+    }
+  }, [activated, navigate]);
   return (
     <div className='flex gap-4 flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900'>
       <h1 className='text-3xl'>Connexion</h1> {/* Updated text to French */}
@@ -103,7 +116,7 @@ const Login = () => {
         <input
           type="email"
           placeholder="Email"
-          className='w-full text-gray-600 dark:text-gray-400 border p-2 focus:outline-none focus:ring-1 focus:ring-primary border-gray-300 dark:border-gray-500 dark:bg-gray-800 px-3 py-2'
+          className='w-full text-gray-600 dark:text-gray-400 border p-4 focus:outline-none focus:ring-1 focus:ring-primary border-gray-300 dark:border-gray-500 dark:bg-gray-800'
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           
@@ -112,7 +125,7 @@ const Login = () => {
           type="text"
           // Updated text to French
           placeholder="Nom d'utilisateur"
-          className='w-full text-gray-600 dark:text-gray-400 border p-2 focus:outline-none focus:ring-1 focus:ring-primary border-gray-300 dark:border-gray-500 dark:bg-gray-800 px-3 py-2'
+          className='w-full text-gray-600 dark:text-gray-400 border p-4 focus:outline-none focus:ring-1 focus:ring-primary border-gray-300 dark:border-gray-500 dark:bg-gray-800'
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           
@@ -121,7 +134,7 @@ const Login = () => {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Mot de passe" 
-            className='w-full text-gray-600 dark:text-gray-400 border p-2 focus:outline-none focus:ring-1 focus:ring-primary border-gray-300 dark:border-gray-500 dark:bg-gray-800 px-3 py-2'
+            className='w-full text-gray-600 dark:text-gray-400 border p-4 focus:outline-none focus:ring-1 focus:ring-primary border-gray-300 dark:border-gray-500 dark:bg-gray-800'
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -145,13 +158,13 @@ const Login = () => {
           </label>
           <Link to={'/reset-password'} className='text-primary hover:text-secondary'>Mot de passe oublié ?</Link> {/* Updated text to French */}
         </div>
-        <button type="submit" className='p-2 bg-primary hover:bg-secondary font-medium text-lg text-gray-100 '>Connexion</button> {/* Updated text to French */}
+        <button type="submit" className='p-4 bg-primary hover:bg-secondary font-medium text-lg text-gray-100 '>Connexion</button> {/* Updated text to French */}
       </form>
       <p className='text-gray-600 dark:text-gray-400'>Pas encore de compte ? <a href="/register" className='text-primary hover:text-secondary'>S'inscrire</a></p> {/* Updated text to French */}
       <p className='text-gray-600 dark:text-gray-400'>Ou connectez-vous avec</p> {/* Updated text to French */}
       <div className='flex gap-4'>
-        <button className='p-2 bg-blue-600 hover:bg-blue-700 text-white'>Facebook</button>
-        <button className='p-2 bg-red-600 hover:bg-red-700 text-white'>Google</button>
+        <button className='p-4 bg-blue-600 hover:bg-blue-700 text-white'>Facebook</button>
+        <button className='p-4 bg-red-600 hover:bg-red-700 text-white'>Google</button>
       </div>
     </div>
   );

@@ -1,0 +1,64 @@
+export interface ProductVariantImage {
+    id: number;
+    image: string;
+    mainImage: boolean;
+  }
+
+export interface ProductVariant {
+ /**Définition de l'interface pour les variantes de produit
+ */
+  id: number;
+  color: string;
+  price: number;
+  discount: number;
+  images: ProductVariantImage[];
+  sizes: ProductSize[];
+}
+
+export interface Product {
+    id: number;
+    title: string;
+    short_desc: string;
+    long_desc: string;
+    subCategory: number;
+    gender: string;
+    category: number;
+    variants: ProductVariant[];
+  }
+
+  export interface VariantImage {
+    image: string;
+    mainImage: boolean;
+  }
+
+  export interface VariantWithImages {
+    images: VariantImage[];
+  }
+
+  // Define types for product variant and image structure (définis une seule fois en haut)
+interface ProductImage {
+  id: number;
+  image: string;
+  mainImage: boolean;
+}
+
+export interface ProductSize {
+  id: number;
+  size: string;
+}
+
+export type CommentType = {
+  id: number;
+  comment: string;
+  user: number; // L'ID de l'utilisateur qui a commenté
+  stars: number;
+  product: number;
+  updated_at: string;
+  created_at: string;
+};
+
+// Pour les infos utilisateur des commentaires (pour le username)
+interface UserInfoForComment {
+  username: string;
+  // Ajoutez d'autres champs si nécessaire
+}
