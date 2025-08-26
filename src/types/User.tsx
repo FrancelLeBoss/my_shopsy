@@ -1,4 +1,4 @@
-// src/types/User.ts
+1; // src/types/User.ts
 export interface User {
   id: number;
   username: string;

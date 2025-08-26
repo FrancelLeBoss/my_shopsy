@@ -1,12 +1,12 @@
 export interface ProductVariantImage {
-    id: number;
-    image: string;
-    mainImage: boolean;
-  }
+  id: number;
+  image: string;
+  mainImage: boolean;
+}
 
 export interface ProductVariant {
- /**Définition de l'interface pour les variantes de produit
- */
+  /**Définition de l'interface pour les variantes de produit
+   */
   id: number;
   color: string;
   price: number;
@@ -16,30 +16,36 @@ export interface ProductVariant {
 }
 
 export interface Product {
-    id: number;
-    title: string;
-    short_desc: string;
-    long_desc: string;
-    subCategory: number;
-    gender: string;
-    category: number;
-    variants: ProductVariant[];
-  }
+  id: number;
+  title: string;
+  short_desc: string;
+  long_desc: string;
+  subCategory: number;
+  gender: string;
+  category: number;
+  variants: ProductVariant[];
+}
 
-  export interface VariantImage {
-    image: string;
-    mainImage: boolean;
-  }
-
-  export interface VariantWithImages {
-    images: VariantImage[];
-  }
-
-  // Define types for product variant and image structure (définis une seule fois en haut)
-interface ProductImage {
+export interface VariantImage {
   id: number;
   image: string;
   mainImage: boolean;
+}
+
+export interface VariantWithImages {
+  images: VariantImage[];
+}
+
+// Define types for product variant and image structure (définis une seule fois en haut)
+export interface ProductImage {
+  id: number;
+  image: string;
+  mainImage: boolean;
+}
+
+export interface WishlistItem {
+  id: number;
+  variant?: ProductVariant;
 }
 
 export interface ProductSize {
@@ -58,7 +64,25 @@ export type CommentType = {
 };
 
 // Pour les infos utilisateur des commentaires (pour le username)
-interface UserInfoForComment {
+export interface UserInfoForComment {
   username: string;
   // Ajoutez d'autres champs si nécessaire
+}
+
+export interface CategoryDetails {
+  id: number;
+  title?: string;
+  short_desc?: string;
+  slug: string;
+  // add other properties as needed
+}
+export interface CartItem {
+  id: number;
+  quantity: number;
+  variant?: {
+    price?: number;
+    [key: string]: any;
+  };
+  size?: ProductSize;
+  [key: string]: any;
 }

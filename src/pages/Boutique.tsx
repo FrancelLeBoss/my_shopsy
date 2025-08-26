@@ -1,15 +1,22 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { FiFilter } from "react-icons/fi";
 import { BiDownArrowAlt } from "react-icons/bi";
 import { GrDown, GrUp } from "react-icons/gr";
 import CheckboxFilter from "../components/general/CheckBox";
 import { Link } from "react-router-dom";
-// ANCIEN : import axios from "axios";
 import axiosInstance from "../api/axiosInstance"; // NOUVEAU : Importer votre instance Axios configurée
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState } from '../redux/store'; // ASSUREZ-VOUS QUE CE CHEMIN EST CORRECT VERS VOTRE FICHIER STORE.TSX OU STORE.TS
-import type { User } from '../types/User';
-import { Product, ProductVariant, VariantImage, VariantWithImages } from "../types/Product";
+import type { RootState } from "../redux/store"; // ASSUREZ-VOUS QUE CE CHEMIN EST CORRECT VERS VOTRE FICHIER STORE.TSX OU STORE.TS
+import type { User } from "../types/User";
+import {
+  CategoryDetails,
+  Product,
+  ProductVariant,
+  VariantImage,
+  VariantWithImages,
+} from "../types/Product";
+import { useCategories } from "../hooks/useCategories";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -23,15 +30,20 @@ export const new_price = (price: number, discount: number): string => {
   return (price - (price * discount) / 100).toFixed(2);
 };
 
-interface BoutiqueProps {
-  _category: string;
-}
-
-export const Boutique = ({ _category }: BoutiqueProps) => {
+export const Boutique = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const [showFilters, setShowFilters] = useState(true);
   const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
+  const { slug } = useParams();
+  const { data, isLoading, error } = useCategories();
+  const categories: CategoryDetails[] = Array.isArray(data) ? data : [];
+
+  // if (isLoading) return <p>Chargement...</p>;
+  // if (error) return <p>Erreur : {error.message}</p>;
+
+  const categoryDetails = categories.find((cat) => cat.slug === slug);
+  console.log("Category details for slug ", slug, ":", categoryDetails);
 
   // Utilisation de RootState pour le typage du sélecteur
   const user: User | null = useSelector((state: RootState) => state.user.user);
@@ -41,7 +53,10 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
   const [priceClicked, setPriceClicked] = useState(false);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const [productHovered, setProductHovered] = useState(-1);
-  const [photoHovered, setPhotoHovered] = useState<{ img: string; index: number } | null>(null);
+  const [photoHovered, setPhotoHovered] = useState<{
+    img: string;
+    index: number;
+  } | null>(null);
   interface FilteredType {
     type: string;
     value: number;
@@ -54,33 +69,23 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
   const [displaySorting, setDisplaySorting] = useState(true);
   const [ProductsData, setProductsData] = useState<any[]>([]);
   const [subCategoryList, setSubCategoryList] = useState<any[]>([]);
-  interface CategoryDetails {
-    title?: string;
-    short_desc?: string;
-    // add other properties as needed
-  }
-  const [categoryDetails, setCategoryDetails] = useState<CategoryDetails>({});
 
   useEffect(() => {
-    axiosInstance.get<any[]>(`api/products/category/${_category}/`)
-      .then(response => setProductsData(response.data))
-      .catch(error => console.error("Error fetching products data:", error)); // Message d'erreur plus spécifique
+    // On ne lance les requêtes que si categoryDetails existe et a un id
+    if (!categoryDetails?.id) return;
 
-    axiosInstance.get<any[]>(`api/categories/${_category}/subcategories`)
-      .then(response => setSubCategoryList(response.data))
+    axiosInstance
+      .get<any[]>(`api/products/category/${categoryDetails.id}/`)
+      .then((response) => setProductsData(response.data))
+      .catch((error) => console.error("Error fetching products data:", error));
+
+    axiosInstance
+      .get<any[]>(`api/categories/${categoryDetails.id}/subcategories`)
+      .then((response) => setSubCategoryList(response.data))
       .catch((error) => {
         console.error("Error fetching subcategories:", error);
       });
-
-    axiosInstance.get<any>(`api/categories/${_category}/`)
-      .then(response => {
-        setCategoryDetails(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching category details:", error);
-      });
-
-  }, [_category, apiBaseUrl]); // apiBaseUrl est déjà inclus dans axiosInstance.baseURL, donc pas strictement nécessaire ici mais ne nuit pas.
+  }, [categoryDetails]);
 
   useEffect(() => {
     if (user && user.id) {
@@ -93,8 +98,12 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
           const items = await Promise.all(
             (cartData as any[]).map(async (item) => {
               // MODIFICATION ICI : Utilisation de axiosInstance pour les détails de variante/taille
-              const variantResponse = await axiosInstance.get(`api/products/variant/${item.variant}/`);
-              const sizeResponse = await axiosInstance.get(`api/products/size/${item.size}/`);
+              const variantResponse = await axiosInstance.get(
+                `api/products/variant/${item.variant}/`
+              );
+              const sizeResponse = await axiosInstance.get(
+                `api/products/size/${item.size}/`
+              );
               return {
                 id: item.id,
                 variant: variantResponse.data,
@@ -103,18 +112,23 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
               };
             })
           );
-          dispatch({ type: 'cart/updateCart', payload: items });
+          dispatch({ type: "cart/updateCart", payload: items });
         })
         .catch((error) => console.error("Error fetching cart data:", error));
 
-      axiosInstance.post(`api/wishlist/`, { user_id: user.id })
+      axiosInstance
+        .post(`api/wishlist/`, { user_id: user.id })
         .then(async (response) => {
           const wishlistData = response.data as any[];
           console.log("User ", user.id, " wishlist data: ", wishlistData);
           const items = await Promise.all(
             wishlistData.map(async (item) => {
-              const variantResponse = await axiosInstance.get(`api/products/variant/${item.variant}/`);
-              const sizeResponse = await axiosInstance.get(`api/products/size/${item.size}/`);
+              const variantResponse = await axiosInstance.get(
+                `api/products/variant/${item.variant}/`
+              );
+              const sizeResponse = await axiosInstance.get(
+                `api/products/size/${item.size}/`
+              );
               return {
                 id: item.id,
                 variant: variantResponse.data,
@@ -122,9 +136,11 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
               };
             })
           );
-          dispatch({ type: 'wishlist/updateWishlist', payload: items });
+          dispatch({ type: "wishlist/updateWishlist", payload: items });
         })
-        .catch((error) => console.error("Error fetching wishlist data:", error));
+        .catch((error) =>
+          console.error("Error fetching wishlist data:", error)
+        );
     }
   }, [user, apiBaseUrl, dispatch]);
   const productsBySubCategory = (subCat: number): Product[] => {
@@ -148,18 +164,23 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
     }
     if (priceFilter.length > 0) {
       ProductFiltered = ProductFiltered.filter(
-        (p) => p?.variants[0]?.price <= Math.max(...priceFilter.map((v) => v || 0))
+        (p) =>
+          p?.variants[0]?.price <= Math.max(...priceFilter.map((v) => v || 0))
       );
     }
     return Math.ceil(ProductFiltered.length / ITEMS_PER_PAGE);
   };
 
   const getHighestPrice = (products: Product[]): number => {
-    return Math.max(...products.map((p: Product) => p?.variants[0]?.price || 0));
+    return Math.max(
+      ...products.map((p: Product) => p?.variants[0]?.price || 0)
+    );
   };
 
   const getLowestPrice = (products: Product[]): number => {
-    return Math.min(...products.map((p: Product) => p?.variants[0]?.price || 0));
+    return Math.min(
+      ...products.map((p: Product) => p?.variants[0]?.price || 0)
+    );
   };
 
   interface GetMedianPriceProduct {
@@ -211,11 +232,9 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
     let filteredProducts = ProductsData;
 
     if (filtered) {
-      filteredProducts = filteredProducts.filter(
-        (product) => {
-          return product.subCategory === filtered.value;
-        }
-      );
+      filteredProducts = filteredProducts.filter((product) => {
+        return product.subCategory === filtered.value;
+      });
     }
 
     if (genderFilter.length > 0) {
@@ -225,7 +244,8 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
     }
     if (priceFilter.length > 0) {
       filteredProducts = filteredProducts.filter(
-        (p) => p?.variants[0]?.price <= Math.max(...priceFilter.map((v) => v || 0))
+        (p) =>
+          p?.variants[0]?.price <= Math.max(...priceFilter.map((v) => v || 0))
       );
     }
     return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -253,12 +273,16 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
     } else if (sortingCriteria === "by name") {
       return displayedProducts().sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortingCriteria === "by price") {
-      return displayedProducts().sort((a, b) => a?.variants[0]?.price - b?.variants[0]?.price);
+      return displayedProducts().sort(
+        (a, b) => a?.variants[0]?.price - b?.variants[0]?.price
+      );
     }
     return displayedProducts(); // Retourne la liste non triée par défaut si le critère n'est pas reconnu
   };
   const indexOfMainImageOfvariant = (variant: VariantWithImages): number => {
-    const index = variant.images.findIndex((image: VariantImage) => image.mainImage === true);
+    const index = variant.images.findIndex(
+      (image: VariantImage) => image.mainImage === true
+    );
     return index !== -1 ? index : 0; // Retourne l'index ou 0 si non trouvé
   };
 
@@ -277,13 +301,20 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-600 dark:text-gray-200 font-medium capitalize">
-          Home / {categoryDetails?.title ? categoryDetails.title : <span className="animate-pulse">Loading...</span>}
+          Home /{" "}
+          {categoryDetails?.title ? (
+            categoryDetails.title
+          ) : (
+            <span className="animate-pulse">Loading...</span>
+          )}
         </div>
 
         {/* Title & Sorting */}
         <div className="flex justify-between items-center mt-3">
           <h1 className="lg:text-3xl md:text-2xl text-xl font-medium">
-            {categoryDetails?.short_desc ? categoryDetails.short_desc + "(" + ProductsData?.length + ")" : "Loading..."}
+            {categoryDetails?.short_desc
+              ? categoryDetails.short_desc + "(" + ProductsData?.length + ")"
+              : "Loading..."}
           </h1>
           <div className="flex items-center gap-4 text-base md:text-lg font-normal">
             <button
@@ -304,16 +335,14 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
               </button>
               {
                 <div
-                  className={`${displaySorting ? "" : "hidden"
-                    } dark:bg-gray-900 bg-gray-50 w-full p-3 top-8
+                  className={`${
+                    displaySorting ? "" : "hidden"
+                  } dark:bg-gray-900 bg-gray-50 w-full p-3 top-8
                     absolute text-xs text-gray-700`}
                 >
                   <CheckboxFilter
                     options={["by name", "by price"]}
-                    labels={[
-                      "By name",
-                      "By price",
-                    ]}
+                    labels={["By name", "By price"]}
                     uniqueSelection={true}
                     onFilterChange={handleSorting}
                   />
@@ -326,17 +355,18 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
         <div className="flex mt-4">
           {/* Sidebar Filtres */}
           {showFilters && (
-            <div className="flex flex-col gap-4 w-1/4 p-4 dark:border-none border-r border-gray-300 bg-white dark:bg-gray-900 shadow-md rounded-md">
+            <div className="flex flex-col gap-4 xl:w-1/6 lg:w-1/5 w-1/4 p-4 dark:border-none border-r border-gray-300 bg-white dark:bg-gray-900 shadow-md rounded-md">
               <div className="">
                 <h2 className="text-lg font-semibold">Filters</h2>
                 <ul className="mt-2 space-y-2 text-gray-400 fon">
                   {subCategoryList.map((category) => (
                     <li
                       key={category?.id}
-                      className={`cursor-pointer hover:text-primary capitalize ${selected === category?.id
+                      className={`cursor-pointer hover:text-primary capitalize ${
+                        selected === category?.id
                           ? "text-primary"
                           : " dark:text-gray-400 text-gray-700"
-                        }`}
+                      }`}
                       onClick={() => {
                         if (filtered?.value !== category?.id) {
                           setFiltered({
@@ -352,7 +382,9 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
                     >
                       {(() => {
                         const products = productsBySubCategory(category?.id);
-                        return products.length > 0 ? `${category?.title} (${products.length})` : null;
+                        return products.length > 0
+                          ? `${category?.title} (${products.length})`
+                          : null;
                       })()}
                     </li>
                   ))}
@@ -388,9 +420,9 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
                       getHighestPrice(ProductsData).toString(),
                     ]}
                     labels={[
-                      getLowestPrice(ProductsData).toFixed(2) + '$',
-                      getMedianPrice(ProductsData).toFixed(2) + '$',
-                      getHighestPrice(ProductsData).toFixed(2) + '$',
+                      getLowestPrice(ProductsData).toFixed(2) + "$",
+                      getMedianPrice(ProductsData).toFixed(2) + "$",
+                      getHighestPrice(ProductsData).toFixed(2) + "$",
                     ]}
                     onFilterChange={handleFilterPriceChange}
                     uniqueSelection={true}
@@ -403,23 +435,35 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
 
           {/* Product Grid */}
           <div
-            className={`grid gap-3 ${showFilters ? "w-3/4" : "w-full lg:grid-cols-4"
-              } grid-cols-1 sm:grid-cols-2 md:grid-cols-3 pl-4`}
+            className={`grid gap-3 ${
+              showFilters ? "w-3/4" : "w-full lg:grid-cols-4"
+            } grid-cols-1 sm:grid-cols-2 md:grid-cols-3 pl-4`}
           >
             {sortedProducts()?.map((item) => (
               <div
                 className="dark:bg-gray-900 bg-white pb-2 shadow-md hover:shadow-lg "
                 key={item.id}
               >
-                <Link to={`/product/${item.id}/${productHovered === item.id && photoHovered?.index !== undefined ? photoHovered.index : item.variants[0].id}`}>
+                <Link
+                  to={`/product/${item.id}/${
+                    productHovered === item.id &&
+                    photoHovered?.index !== undefined
+                      ? photoHovered.index
+                      : item.variants[0].id
+                  }`}
+                >
                   <img
                     src={
-                      productHovered === item.id && photoHovered?.index !== undefined
+                      productHovered === item.id &&
+                      photoHovered?.index !== undefined
                         ? photoHovered.img
-                        : apiBaseUrl + item?.variants[0]?.images[indexOfMainImageOfvariant(item?.variants[0])]?.image
+                        : apiBaseUrl +
+                          item?.variants[0]?.images[
+                            indexOfMainImageOfvariant(item?.variants[0])
+                          ]?.image
                     }
                     alt={item.title}
-                    className="w-full h-64 object-cover hover:outline-primary hover:outline hover:outline-1"
+                    className="w-full xl:h-[420px] lg:h-[350px] md:h-[300px] h-[250px] object-cover hover:outline-primary hover:outline hover:outline-1"
                   />
                 </Link>
                 {productHovered !== item.id && (
@@ -440,15 +484,22 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
                     <div
                       className={`flex items-center text-secondary font-medium text-lg `}
                     >
-                      ${thereIsDiscount(item)[0] > 0
-                        ? new_price(item?.variants[thereIsDiscount(item)[1]]?.price, item.variants[thereIsDiscount(item)[1]]?.discount)
+                      $
+                      {thereIsDiscount(item)[0] > 0
+                        ? new_price(
+                            item?.variants[thereIsDiscount(item)[1]]?.price,
+                            item.variants[thereIsDiscount(item)[1]]?.discount
+                          )
                         : item?.variants[0]?.price}
                       {thereIsDiscount(item)[0] > 0 && (
-                        <s className="ml-1 text-gray-500">${item?.variants[thereIsDiscount(item)[1]]?.price}</s>
+                        <s className="ml-1 text-gray-500">
+                          ${item?.variants[thereIsDiscount(item)[1]]?.price}
+                        </s>
                       )}
                       {thereIsDiscount(item)[0] > 0 && (
                         <h3 className="ml-1 text-green-600">
-                          {item.variants[thereIsDiscount(item)[1]]?.discount}% discount
+                          {item.variants[thereIsDiscount(item)[1]]?.discount}%
+                          discount
                         </h3>
                       )}
                     </div>
@@ -456,17 +507,30 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
                 )}
                 {/* Affichage conditionnel au survol */}
                 {productHovered === item.id && (
-                  <div
-                    className="mt-2 p-2 rounded-md text-sm text-gray-700 flex flex-col gap-2"
-                  >
+                  <div className="mt-2 p-2 rounded-md text-sm text-gray-700 flex flex-col gap-2">
                     <div className="flex gap-1 items-center">
                       {item?.variants.map((element: ProductVariant) => (
-                        <Link to={`/product/${item.id}/${element?.id}`} key={element.id}>
+                        <Link
+                          to={`/product/${item.id}/${element?.id}`}
+                          key={element.id}
+                        >
                           <img
-                            src={apiBaseUrl + element?.images[indexOfMainImageOfvariant(element)]?.image}
+                            src={
+                              apiBaseUrl +
+                              element?.images[
+                                indexOfMainImageOfvariant(element)
+                              ]?.image
+                            }
                             className="w-10 h-10 hover:outline hover:outline-primary hover:outline-1"
                             onMouseEnter={() =>
-                              setPhotoHovered({ img: apiBaseUrl + element?.images[indexOfMainImageOfvariant(element)]?.image, index: element.id })
+                              setPhotoHovered({
+                                img:
+                                  apiBaseUrl +
+                                  element?.images[
+                                    indexOfMainImageOfvariant(element)
+                                  ]?.image,
+                                index: element.id,
+                              })
                             }
                             onClick={() =>
                               (window.location.href = `/product/${item.id}/${element?.id}`)
@@ -478,19 +542,22 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
                     <div
                       className={`flex items-center text-secondary font-medium text-lg `}
                     >
-                      ${thereIsDiscount(item)[0] > 0
+                      $
+                      {thereIsDiscount(item)[0] > 0
                         ? new_price(
-                          item?.variants[thereIsDiscount(item)[1]]?.price,
-                          item.variants[thereIsDiscount(item)[1]]?.discount
-                        )
-                        :
-                        item?.variants[0]?.price}
+                            item?.variants[thereIsDiscount(item)[1]]?.price,
+                            item.variants[thereIsDiscount(item)[1]]?.discount
+                          )
+                        : item?.variants[0]?.price}
                       {thereIsDiscount(item)[0] > 0 && (
-                        <s className="ml-1 text-gray-500">${item?.variants[thereIsDiscount(item)[1]]?.price}</s>
+                        <s className="ml-1 text-gray-500">
+                          ${item?.variants[thereIsDiscount(item)[1]]?.price}
+                        </s>
                       )}
                       {thereIsDiscount(item)[0] > 0 && (
                         <h3 className="ml-1 text-green-600">
-                          {item.variants[thereIsDiscount(item)[1]]?.discount}% discount
+                          {item.variants[thereIsDiscount(item)[1]]?.discount}%
+                          discount
                         </h3>
                       )}
                       {/* Affichage du rabais s'il y en a un */}
@@ -515,9 +582,9 @@ export const Boutique = ({ _category }: BoutiqueProps) => {
           </span>
           <button
             className="px-3 py-1 dark:bg-gray-900 bg-gray-300 rounded-md disabled:opacity-50"
-            onClick={() => setCurrentPage((prev) =>
-              Math.min(prev + 1, totalPages())
-            )}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages()))
+            }
             disabled={currentPage === totalPages()}
           >
             Next

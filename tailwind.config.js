@@ -1,31 +1,28 @@
 /** @type {import('tailwindcss').Config} */
+import defaultTheme from "tailwindcss/defaultTheme";
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  darkMode:"class",
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
-      // fontFamily:{
-      //   sans:["Poppins"]
-      // }
-      colors:{
-        primary:"#fea928",
-        secondary:"#ed8900",
-        golden: '#FFD700'
-
+      fontFamily: {
+        sans: ["Poppins", ...defaultTheme.fontFamily.sans],
+        signature: ['"Great Vibes"', "cursive"],
       },
-      
-      container:{
-        center:true,
-        padding:{
-          DEFAULT: '1rem',
-          sm:'3rem'
-        }
-      }
+      colors: {
+        primary: "#fea928",
+        secondary: "#ed8900",
+        golden: "#FFD700",
+      },
+
+      container: {
+        center: true,
+        padding: {
+          DEFAULT: "1rem",
+          sm: "0.075rem",
+        },
+      },
     },
   },
   plugins: [],
-}
-
+};
