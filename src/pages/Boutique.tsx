@@ -352,222 +352,227 @@ export const Boutique = () => {
           </div>
         </div>
         {/* Content Grid */}
-        <div className="flex mt-4">
-          {/* Sidebar Filtres */}
-          {showFilters && (
-            <div className="flex flex-col gap-4 xl:w-1/6 lg:w-1/5 w-1/4 p-4 dark:border-none border-r border-gray-300 bg-white dark:bg-gray-900 shadow-md rounded-md">
-              <div className="">
-                <h2 className="text-lg font-semibold">Filters</h2>
-                <ul className="mt-2 space-y-2 text-gray-400 fon">
-                  {subCategoryList.map((category) => (
-                    <li
-                      key={category?.id}
-                      className={`cursor-pointer hover:text-primary capitalize ${
-                        selected === category?.id
-                          ? "text-primary"
-                          : " dark:text-gray-400 text-gray-700"
-                      }`}
-                      onClick={() => {
-                        if (filtered?.value !== category?.id) {
-                          setFiltered({
-                            type: "sub_categorie",
-                            value: category?.id,
-                          });
-                          setSelected(category?.id);
-                        } else {
-                          setFiltered(null);
-                          setSelected(null);
-                        }
-                      }}
-                    >
-                      {(() => {
-                        const products = productsBySubCategory(category?.id);
-                        return products.length > 0
-                          ? `${category?.title} (${products.length})`
-                          : null;
-                      })()}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <hr className="font-medium text-gray-700" />
-              <div className="flex flex-col cursor-pointer gap-2">
-                <div
-                  className="flex justify-between font-medium"
-                  onClick={() => setGenderClicked(!genderClicked)}
-                >
-                  <span>Gender</span>
-                  {genderClicked ? <GrUp /> : <GrDown />}
-                </div>
-                <div className={`${genderClicked ? "block" : "hidden"}`}>
-                  <CheckboxFilter onFilterChange={handleFilterChange} />
-                </div>
-              </div>
-              <hr className="font-medium text-gray-700" />
-              <div className="flex flex-col cursor-pointer gap-2">
-                <div
-                  className="flex justify-between font-medium"
-                  onClick={() => setPriceClicked(!priceClicked)}
-                >
-                  <span>Filter by price</span>
-                  {priceClicked ? <GrUp /> : <GrDown />}
-                </div>
-                <div className={`${priceClicked ? "block" : "hidden"}`}>
-                  <CheckboxFilter
-                    options={[
-                      getLowestPrice(ProductsData).toString(),
-                      getMedianPrice(ProductsData).toString(),
-                      getHighestPrice(ProductsData).toString(),
-                    ]}
-                    labels={[
-                      getLowestPrice(ProductsData).toFixed(2) + "$",
-                      getMedianPrice(ProductsData).toFixed(2) + "$",
-                      getHighestPrice(ProductsData).toFixed(2) + "$",
-                    ]}
-                    onFilterChange={handleFilterPriceChange}
-                    uniqueSelection={true}
-                  />
-                </div>
-              </div>
-              <hr className="font-medium text-gray-700" />
-            </div>
-          )}
-
-          {/* Product Grid */}
-          <div
-            className={`grid gap-3 ${
-              showFilters ? "w-3/4" : "w-full lg:grid-cols-4"
-            } grid-cols-1 sm:grid-cols-2 md:grid-cols-3 pl-4`}
+<div className="flex mt-4">
+  {/* Sidebar Filtres */}
+  <div
+    className={`
+    transition-all ease-in-out duration-700 overflow-hidden 
+    ${
+      showFilters
+        ? "xl:w-1/6 lg:w-1/5 w-1/4 flex flex-col gap-4 p-4 dark:border-none border-r border-gray-300 bg-white dark:bg-gray-900 shadow-md rounded-md"
+        : "w-0 p-0 m-0"
+    }`}
+  >
+    <div className="">
+      <h2 className="lg:text-lg text-base font-semibold">Filters</h2>
+      <ul className="mt-2 space-y-2 text-gray-400">
+        {subCategoryList.map((category) => (
+          <li
+            key={category?.id}
+            className={`cursor-pointer hover:text-primary capitalize ${
+              selected === category?.id
+                ? "text-primary"
+                : " dark:text-gray-400 text-gray-700"
+            }`}
+            onClick={() => {
+              if (filtered?.value !== category?.id) {
+                setFiltered({
+                  type: "sub_categorie",
+                  value: category?.id,
+                });
+                setSelected(category?.id);
+              } else {
+                setFiltered(null);
+                setSelected(null);
+              }
+            }}
           >
-            {sortedProducts()?.map((item) => (
-              <div
-                className="dark:bg-gray-900 bg-white pb-2 shadow-md hover:shadow-lg "
-                key={item.id}
-              >
+            {(() => {
+              const products = productsBySubCategory(category?.id);
+              return products.length > 0
+                ? `${category?.title} (${products.length})`
+                : null;
+            })()}
+          </li>
+        ))}
+      </ul>
+    </div>
+    <hr className="font-medium text-gray-700" />
+    <div className="flex flex-col cursor-pointer gap-2">
+      <div
+        className="flex justify-between font-medium"
+        onClick={() => setGenderClicked(!genderClicked)}
+      >
+        <span>Gender</span>
+        {genderClicked ? <GrUp /> : <GrDown />}
+      </div>
+      <div className={`${genderClicked ? "block" : "hidden"}`}>
+        <CheckboxFilter onFilterChange={handleFilterChange} />
+      </div>
+    </div>
+    <hr className="font-medium text-gray-700" />
+    <div className="flex flex-col cursor-pointer gap-2">
+      <div
+        className="flex justify-between font-medium"
+        onClick={() => setPriceClicked(!priceClicked)}
+      >
+        <span>Filter by price</span>
+        {priceClicked ? <GrUp /> : <GrDown />}
+      </div>
+      <div className={`${priceClicked ? "block" : "hidden"}`}>
+        <CheckboxFilter
+          options={[
+            getLowestPrice(ProductsData).toString(),
+            getMedianPrice(ProductsData).toString(),
+            getHighestPrice(ProductsData).toString(),
+          ]}
+          labels={[
+            getLowestPrice(ProductsData).toFixed(2) + "$",
+            getMedianPrice(ProductsData).toFixed(2) + "$",
+            getHighestPrice(ProductsData).toFixed(2) + "$",
+          ]}
+          onFilterChange={handleFilterPriceChange}
+          uniqueSelection={true}
+        />
+      </div>
+    </div>
+    <hr className="font-medium text-gray-700" />
+  </div>
+
+  {/* Product Grid */}
+  <div
+    className={`grid gap-3 ${
+      showFilters ? "w-3/4" : "w-full"
+    } grid-cols-1 sm:grid-cols-2 pl-4`}
+  >
+    {sortedProducts()?.map((item) => (
+      <div
+        className="dark:bg-gray-900 bg-white pb-2 shadow-md hover:shadow-lg "
+        key={item.id}
+      >
+        <Link
+          to={`/product/${item.id}/${
+            productHovered === item.id &&
+            photoHovered?.index !== undefined
+              ? photoHovered.index
+              : item.variants[0].id
+          }`}
+        >
+          <img
+            src={
+              productHovered === item.id &&
+              photoHovered?.index !== undefined
+                ? photoHovered.img
+                : apiBaseUrl +
+                  item?.variants[0]?.images[
+                    indexOfMainImageOfvariant(item?.variants[0])
+                  ]?.image
+            }
+            alt={item.title}
+            className="w-full xl:h-[420px] lg:h-[350px] md:h-[300px] h-[250px] object-cover hover:outline-primary hover:outline hover:outline-1"
+          />
+        </Link>
+        {productHovered !== item.id && (
+          <div
+            className="mt-2 px-2"
+            onMouseEnter={() => {
+              setProductHovered(item.id);
+              setPhotoHovered(null);
+            }}
+            onMouseLeave={() => setProductHovered(-1)}
+          >
+            <span className="font-semibold text-secondary">
+              {item.title}
+            </span>
+            <div className="block text-gray-500 text-base line-clamp-2 max-h-20">
+              {item.short_desc}
+            </div>
+            <div
+              className={`flex items-center text-secondary font-medium text-lg `}
+            >
+              $
+              {thereIsDiscount(item)[0] > 0
+                ? new_price(
+                    item?.variants[thereIsDiscount(item)[1]]?.price,
+                    item.variants[thereIsDiscount(item)[1]]?.discount
+                  )
+                : item?.variants[0]?.price}
+              {thereIsDiscount(item)[0] > 0 && (
+                <s className="ml-1 text-gray-500">
+                  ${item?.variants[thereIsDiscount(item)[1]]?.price}
+                </s>
+              )}
+              {thereIsDiscount(item)[0] > 0 && (
+                <h3 className="ml-1 text-green-600">
+                  {item.variants[thereIsDiscount(item)[1]]?.discount}%
+                  discount
+                </h3>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Affichage conditionnel au survol */}
+        {productHovered === item.id && (
+          <div className="mt-2 p-2 rounded-md text-sm text-gray-700 flex flex-col gap-2">
+            <div className="flex gap-1 items-center">
+              {item?.variants.map((element: ProductVariant) => (
                 <Link
-                  to={`/product/${item.id}/${
-                    productHovered === item.id &&
-                    photoHovered?.index !== undefined
-                      ? photoHovered.index
-                      : item.variants[0].id
-                  }`}
+                  to={`/product/${item.id}/${element?.id}`}
+                  key={element.id}
                 >
                   <img
                     src={
-                      productHovered === item.id &&
-                      photoHovered?.index !== undefined
-                        ? photoHovered.img
-                        : apiBaseUrl +
-                          item?.variants[0]?.images[
-                            indexOfMainImageOfvariant(item?.variants[0])
-                          ]?.image
+                      apiBaseUrl +
+                      element?.images[
+                        indexOfMainImageOfvariant(element)
+                      ]?.image
                     }
-                    alt={item.title}
-                    className="w-full xl:h-[420px] lg:h-[350px] md:h-[300px] h-[250px] object-cover hover:outline-primary hover:outline hover:outline-1"
+                    className="w-10 h-10 hover:outline hover:outline-primary hover:outline-1"
+                    onMouseEnter={() =>
+                      setPhotoHovered({
+                        img:
+                          apiBaseUrl +
+                          element?.images[
+                            indexOfMainImageOfvariant(element)
+                          ]?.image,
+                        index: element.id,
+                      })
+                    }
+                    onClick={() =>
+                      (window.location.href = `/product/${item.id}/${element?.id}`)
+                    }
                   />
                 </Link>
-                {productHovered !== item.id && (
-                  <div
-                    className="mt-2 px-2"
-                    onMouseEnter={() => {
-                      setProductHovered(item.id);
-                      setPhotoHovered(null);
-                    }}
-                    onMouseLeave={() => setProductHovered(-1)}
-                  >
-                    <span className="font-semibold text-secondary">
-                      {item.title}
-                    </span>
-                    <span className="block text-gray-500 text-base">
-                      {item.short_desc}
-                    </span>
-                    <div
-                      className={`flex items-center text-secondary font-medium text-lg `}
-                    >
-                      $
-                      {thereIsDiscount(item)[0] > 0
-                        ? new_price(
-                            item?.variants[thereIsDiscount(item)[1]]?.price,
-                            item.variants[thereIsDiscount(item)[1]]?.discount
-                          )
-                        : item?.variants[0]?.price}
-                      {thereIsDiscount(item)[0] > 0 && (
-                        <s className="ml-1 text-gray-500">
-                          ${item?.variants[thereIsDiscount(item)[1]]?.price}
-                        </s>
-                      )}
-                      {thereIsDiscount(item)[0] > 0 && (
-                        <h3 className="ml-1 text-green-600">
-                          {item.variants[thereIsDiscount(item)[1]]?.discount}%
-                          discount
-                        </h3>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {/* Affichage conditionnel au survol */}
-                {productHovered === item.id && (
-                  <div className="mt-2 p-2 rounded-md text-sm text-gray-700 flex flex-col gap-2">
-                    <div className="flex gap-1 items-center">
-                      {item?.variants.map((element: ProductVariant) => (
-                        <Link
-                          to={`/product/${item.id}/${element?.id}`}
-                          key={element.id}
-                        >
-                          <img
-                            src={
-                              apiBaseUrl +
-                              element?.images[
-                                indexOfMainImageOfvariant(element)
-                              ]?.image
-                            }
-                            className="w-10 h-10 hover:outline hover:outline-primary hover:outline-1"
-                            onMouseEnter={() =>
-                              setPhotoHovered({
-                                img:
-                                  apiBaseUrl +
-                                  element?.images[
-                                    indexOfMainImageOfvariant(element)
-                                  ]?.image,
-                                index: element.id,
-                              })
-                            }
-                            onClick={() =>
-                              (window.location.href = `/product/${item.id}/${element?.id}`)
-                            }
-                          />
-                        </Link>
-                      ))}
-                    </div>
-                    <div
-                      className={`flex items-center text-secondary font-medium text-lg `}
-                    >
-                      $
-                      {thereIsDiscount(item)[0] > 0
-                        ? new_price(
-                            item?.variants[thereIsDiscount(item)[1]]?.price,
-                            item.variants[thereIsDiscount(item)[1]]?.discount
-                          )
-                        : item?.variants[0]?.price}
-                      {thereIsDiscount(item)[0] > 0 && (
-                        <s className="ml-1 text-gray-500">
-                          ${item?.variants[thereIsDiscount(item)[1]]?.price}
-                        </s>
-                      )}
-                      {thereIsDiscount(item)[0] > 0 && (
-                        <h3 className="ml-1 text-green-600">
-                          {item.variants[thereIsDiscount(item)[1]]?.discount}%
-                          discount
-                        </h3>
-                      )}
-                      {/* Affichage du rabais s'il y en a un */}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
+            <div
+              className={`flex items-center text-secondary font-medium text-lg `}
+            >
+              $
+              {thereIsDiscount(item)[0] > 0
+                ? new_price(
+                    item?.variants[thereIsDiscount(item)[1]]?.price,
+                    item.variants[thereIsDiscount(item)[1]]?.discount
+                  )
+                : item?.variants[0]?.price}
+              {thereIsDiscount(item)[0] > 0 && (
+                <s className="ml-1 text-gray-500">
+                  ${item?.variants[thereIsDiscount(item)[1]]?.price}
+                </s>
+              )}
+              {thereIsDiscount(item)[0] > 0 && (
+                <h3 className="ml-1 text-green-600">
+                  {item.variants[thereIsDiscount(item)[1]]?.discount}%
+                  discount
+                </h3>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
         {/* Pagination */}
         <div className="flex justify-end mt-6 gap-2">
           <button

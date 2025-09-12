@@ -82,7 +82,8 @@ const Product = () => {
   const [variantId, setVariantId] = useState<number | null>(parseInt(v || '', 10) || null);
   const [sizeId, setSizeId] = useState<number | null>(null);
   const [comment, setComment] = useState<string | null>(null);
-
+  const [hoveredStar, setHoveredStar] = useState<number>(0);
+  const [selectedStar, setSelectedStar] = useState<number>(0);
   const [comments, setComments] = useState<CommentType[]>([]);
   const [currentComPage, setCurrentComPage] = useState(1);
   const commentsPerPage = 5;
@@ -227,7 +228,7 @@ const Product = () => {
     try {
       const response = await axiosInstance.post<any>(
         `api/comments/save/`,
-        { comment: comment, user: user.id, stars: 5, product: productId }
+        { comment: comment, user: user.id, stars: selectedStar, product: productId }
       );
 
       const newComment: CommentType = {
@@ -264,7 +265,8 @@ const Product = () => {
   const averageStars = () => {
     if (comments.length === 0) return 0;
     const totalStars = comments.reduce((acc, comment) => acc + comment.stars, 0);
-    return (totalStars / comments.length).toFixed(1);
+    //return (totalStars / comments.length).toFixed(1);
+    return Math.round(totalStars / comments.length);
   }
 
   const fetchCart = async () => {
@@ -273,7 +275,7 @@ const Product = () => {
       return;
     }
     try {
-      const response = await axiosInstance.get<CartItemApi[]>(`api/cart/${user.id}/`);
+      const response = await axiosInstance.get<CartItemApi[]>(`api/cart/`);
       const cartData = response.data;
       console.log("User ", user.id, " cart data: ", cartData);
 
@@ -438,7 +440,7 @@ const Product = () => {
     if (user && user.id) {
       fetchCart();
 
-      axiosInstance.post<any[]>(`api/wishlist/`, { user_id: user.id })
+      axiosInstance.get<any[]>(`api/wishlist/`)
         .then(async response => {
           const wishlistData = response.data;
           const items: WishlistItemRedux[] = await Promise.all(
@@ -480,7 +482,7 @@ const Product = () => {
       <div className='flex flex-col gap-2'>
         {/* MAIN PRODUCT CONTENT AREA: flex-row for desktop, column for mobile */}
         <div className='justify-center flex flex-col gap-4 lg:gap-12 
-                lg:flex-row py-2 px-4 md:px-8 lg:px-12'> 
+                lg:flex-row py-2 px-4 md:px-6'> 
           {/* Left part (photos) - This will be sticky */}
           <div className='
               flex gap-4 flex-col-reverse lg:flex-row items-start
@@ -602,10 +604,20 @@ const Product = () => {
                 <div className='font-medium text-gray-700 dark:text-gray-200 cursor-pointer hover:text-primary dark:hover:text-primary text-xl'>More about the product</div>
               </div>
               <hr />
-              <div className='flex items-center justify-between cursor-pointer text-2xl lg:text-3xl' onClick={() => setDisplayReviews(!displayReviews)}>
-                <span className=''>Reviews({comments.length})</span>
-                <div className='flex gap-1 items-center'>
-                  <span className='text-primary'>{averageStars()}</span><BsStarFill className='text-primary' />
+              <div className='flex items-center justify-between cursor-pointer text-xl lg:text-2xl' onClick={() => setDisplayReviews(!displayReviews)}>
+                <span className=''>Reviews ({comments.length})</span>
+                <div className='flex gap-1 items-center text-base lg:text-xl'>
+{/*                   <span className='text-primary'>{averageStars()}</span><BsStarFill className='text-primary' /> */}
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span key={star} className={`
+                      cursor-pointer
+                      transition-colors duration-300 text-primary
+                      `} >
+                        {
+                          star <= averageStars() ? <BsStarFill /> : <BiStar />
+                        }
+                    </span>
+                  ))}
                   <span> {displayReviews ? <GrUp /> : <GrDown />} </span>
                 </div>
               </div>
@@ -617,12 +629,25 @@ const Product = () => {
                       <div className='flex justify-between items-center'>
                         <div> How many stars?</div>
                         <div className='flex items-center justify-end gap-1'>
-                          <span className=''><BiStar /></span>
-                          <span className=''><BiStar /></span>
-                          <span className=''><BiStar /></span>
-                          <span className=''><BiStar /></span>
-                          <span className=''><BiStar /></span>
-                        </div>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              onMouseEnter={() => setHoveredStar(star)}
+                              onMouseLeave={() => setHoveredStar(0)}
+                              onClick={() => setSelectedStar(star)}
+                              className={`
+                                cursor-pointer
+                                transition-colors duration-300 text-primary
+                              `}
+                            >
+                              {
+                                (hoveredStar > 0 ? star <= hoveredStar : star <= selectedStar)
+                                  ? <BsStarFill  />
+                                  : <BiStar />
+                               }
+                            </span>
+                          ))}
+                        </div>
                       </div>
                       <button className='p-1 bg-primary hover:bg-secondary text-gray-100' onClick={handleAddComment}>Submit</button>
                     </div>
@@ -642,7 +667,13 @@ const Product = () => {
                         </div>
                         <p className='text-gray-500 dark:text-gray-400'>{c.comment}</p>
                         <div className='flex items-center gap-1'>
-                          <span className='text-yellow-500'>{c.stars}</span><BsStarFill className='text-yellow-500' />
+                          {
+                            [1, 2, 3, 4, 5].map((star) => (
+                              <span key={star} className={`
+                                cursor-pointer text-primary`}>
+                                {star <= c.stars ? <BsStarFill /> : <BiStar />}
+                              </span>
+                            ))}
                         </div>
                       </div>
                     ))
@@ -664,7 +695,16 @@ const Product = () => {
         </div>
         <div className='flex flex-col gap-2'>
           <div className='text-2xl p-5 font-semibold'>You might be interested...</div>
-          <div></div>
+          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4'>
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className='flex flex-col gap-2'>
+                  <div className='h-[450px] bg-gray-200 dark:bg-gray-800'></div>
+                  <div className='text-lg font-semibold dark:text-gray-200'>Product Title</div>
+                  <div className='text-primary font-bold'>$49.99</div>
+                </div>
+              ))
+    }
+          </div>
         </div>
       </div>
     </div>

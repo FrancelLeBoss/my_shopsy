@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
-import defaultTheme from "tailwindcss/defaultTheme";
-export default {
+const defaultTheme = require("tailwindcss/defaultTheme");
+
+module.exports = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   darkMode: "class",
   theme: {
@@ -14,7 +15,6 @@ export default {
         secondary: "#ed8900",
         golden: "#FFD700",
       },
-
       container: {
         center: true,
         padding: {
@@ -24,5 +24,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/line-clamp")],
 };

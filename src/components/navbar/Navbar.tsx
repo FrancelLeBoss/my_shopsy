@@ -84,7 +84,9 @@ const Navbar: React.FC<{
     (state: RootState) => state.user
   );
   const dispatch = useDispatch();
-  const cart = useSelector((state: RootState) => state.cart.items);
+  const cart = useSelector(
+    (state: RootState) => (state.cart as RootState["cart"]).items
+  );
   const wishlist = useSelector((state: RootState) => state.wishlist.items);
   // const [cart, setCart] = useState([]);
   const totalWishlistItems = wishlist?.length || 0; // Assuming wishlist is an array of items
@@ -105,7 +107,7 @@ const Navbar: React.FC<{
     if (isAuthenticated && user?.id) {
       // Requête pour le panier
       axiosInstance
-        .get(`${apiBaseUrl}api/cart/${user.id}/`) // Utilisez axiosInstance
+        .get(`${apiBaseUrl}api/cart/`) // Utilisez axiosInstance
         .then(async (response) => {
           const cartData: any = response.data;
           const items = await Promise.all(

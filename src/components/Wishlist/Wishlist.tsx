@@ -72,9 +72,8 @@ const Wishlist = ({ wishlistPopup, setWishlistPopup }: WishlistProps) => {
   const fetchWishlist = async () => {
     try {
       const response = await axios
-        .post(
+        .get(
           `${apiBaseUrl}api/wishlist/`,
-          { user_id: user?.id },
           {
             headers: {
               Authorization: `Bearer ${accessToken}`, // Assurez-vous que l'utilisateur a un accessToken valide
@@ -195,19 +194,22 @@ const Wishlist = ({ wishlistPopup, setWishlistPopup }: WishlistProps) => {
                       wishlist?.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-2 border-b py-2 cursor-pointer"
-                          title="See details"
-                          onClick={() => {
-                            window.location.href = `/product/${item?.variant?.product?.id}/${item?.variant?.id}`;
-                          }}
+                          className="flex items-center gap-2 border-b p-2  hover:bg-primary/20"
                         >
                           <img
                             src={imageUrl(item?.variant?.images)}
                             alt={item?.variant?.product?.title}
-                            className="w-16 h-16 object-cover"
+                            className="w-16 h-16 object-cover cursor-pointer"
+                            title="See details"
+                          onClick={() => {
+                            window.location.href = `/product/${item?.variant?.product?.id}/${item?.variant?.id}`;
+                          }}
                           />
                           <div className="flex flex-col gap-1 w-full">
-                            <div className="text-lg text-gray-800 dark:text-gray-300">
+                            <div className="text-lg text-gray-800 dark:text-gray-300 cursor-pointer" title="See details"
+                          onClick={() => {
+                            window.location.href = `/product/${item?.variant?.product?.id}/${item?.variant?.id}`;
+                          }}>
                               {item.variant?.product?.title} (
                               {item.variant?.color})
                             </div>
@@ -218,7 +220,7 @@ const Wishlist = ({ wishlistPopup, setWishlistPopup }: WishlistProps) => {
                                 <span>$</span>
                               </div>
                               {/* Quantité et bouton Remove */}
-                              <div className="flex items-center gap-2 justify-end w-full">
+                              <div className="flex items-center gap-2 justify-end w-full cursor-pointer">
                                 <button
                                   className="text-red-500 hover:text-red-700"
                                   onClick={() => {

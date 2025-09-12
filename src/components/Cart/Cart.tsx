@@ -153,6 +153,7 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
   interface HandleUpdateQuantityItem {
     variant: {
       id: number;
+      stock: number;
     };
     size?: {
       id?: number;
@@ -165,6 +166,10 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
   ): void => {
     if (newQuantity < 1) {
       Swal.fire("Invalid Quantity", "Quantity must be at least 1.", "error");
+      return;
+    }
+    if (newQuantity > (item.variant.stock)) {
+      Swal.fire("Invalid Quantity", "Quantity exceeds available stock.", "error");
       return;
     }
     if (user) {
@@ -208,6 +213,7 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
         variant: number;
         size: number;
         quantity: number;
+        stock?: number;
       }>;
       console.log("User ", user?.id, " cart data: ", cartData);
 
@@ -225,6 +231,7 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
             variant: variantResponse.data, // Stocker la variante entière
             size: sizeResponse.data, // Stocker la taille entière
             quantity: item.quantity,
+            stock: item.stock,
           };
         })
       );
@@ -266,15 +273,24 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
                       cart?.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-2 border-b py-2"
+                          className="flex items-center gap-2 border-b p-2 hover:bg-primary/20"
+                          
                         >
                           <img
                             src={imageUrl(item?.variant?.images)}
                             alt={item?.variant?.product?.title}
-                            className="w-16 h-16 object-cover"
+                            className="w-16 h-16 object-cover cursor-pointer"
+                            title="See details"
+                          onClick={() => {
+                            window.location.href = `/product/${item?.variant?.product?.id}/${item?.variant?.id}`;
+                          }}
                           />
                           <div className="flex flex-col gap-1 w-full">
-                            <div className="text-lg text-gray-800 dark:text-gray-300">
+                            <div className="text-lg text-gray-800 dark:text-gray-300 cursor-pointer"
+                            title="See details"
+                          onClick={() => {
+                            window.location.href = `/product/${item?.variant?.product?.id}/${item?.variant?.id}`;
+                          }}>
                               {item.variant?.product?.title} (
                               {item.variant?.color})
                             </div>
@@ -286,11 +302,8 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
                                 <span className="text-gray-500 dark:text-gray-400">
                                   |
                                 </span>
-                                <div className="flex items-center gap-1">
-                                  <span className="">size </span>
-                                  <span className="text-primary">
-                                    {item?.size?.size}
-                                  </span>
+                                <div className="flex items-center gap-1 whitespace-nowrap">
+                                   <span className="text-primary">{item?.size?.size}</span>
                                 </div>
                               </div>
                               {/* Quantité et bouton Remove */}
@@ -301,12 +314,14 @@ const Cart: React.FC<CartProps> = ({ orderPopup, setOrderPopup }) => {
                                 <input
                                   type="number"
                                   min={1}
+                                  max={item?.stock}
                                   value={item?.quantity}
                                   className="w-12 border border-gray-300 dark:border-gray-500 dark:bg-gray-800 px-2 py-1 focus:outline-primary/20 focus:outline-1"
                                   onChange={(e) => {
-                                    handleUpdateQuantity(
+                                    
+                                      handleUpdateQuantity(
                                       {
-                                        variant: { id: item?.variant?.id },
+                                        variant: { id: item?.variant?.id, stock: item?.variant?.stock || 10 },
                                         size: item?.size
                                           ? { id: item.size.id }
                                           : undefined,
