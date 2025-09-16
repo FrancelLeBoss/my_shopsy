@@ -86,6 +86,8 @@ const Product = () => {
   const [selectedStar, setSelectedStar] = useState<number>(0);
   const [comments, setComments] = useState<CommentType[]>([]);
   const [currentComPage, setCurrentComPage] = useState(1);
+  const [relatedBySubCatProducts, setRelatedBySubCatProducts] = useState<ProductType[]>([]);
+  const [relatedByCatProducts, setRelatedByCatProducts] = useState<ProductType[]>([]);
   const commentsPerPage = 5;
   const indexOfLastComment = currentComPage * commentsPerPage;
   const indexOfFirstComment = indexOfLastComment - commentsPerPage;
@@ -117,6 +119,10 @@ const Product = () => {
   const selectedVariant = (vId: number | null): ProductVariant | undefined => {
     return product?.variants?.find((variant: ProductVariant) => variant.id === vId);
   };
+  const mainVariant = (product:ProductType | null):ProductVariant | undefined => {
+    return product?.variants[0];
+  }
+
   const variant = selectedVariant(variantId);
 
   const [selectedVariantImage, setSelectedVariantImage] = useState<string | null>(null);
@@ -161,6 +167,26 @@ const Product = () => {
         .catch(error => console.error("Error fetching category data:", error));
     }
   }, [product]);
+
+  //recuperation des produits dans la meme sous categorie et  categorie 
+    useEffect(() => {
+     if (product?.category) {
+      axiosInstance.get<ProductType[]>(`api/products/category/${product.category}/`)
+        .then(response => {
+          setRelatedByCatProducts(response.data);
+          console.log("relatedByCatProducts:", response.data);
+        })
+        .catch(error => console.error("Error fetching related products:", error));
+    }
+    if (product?.subCategory) {
+      axiosInstance.get<ProductType[]>(`api/products/subcategory/${product.subCategory}/`)
+        .then(response => {
+          setRelatedBySubCatProducts(response.data);
+          console.log("relatedBySubCatProducts:", response.data);
+        })
+        .catch(error => console.error("Error fetching subcategory products:", error));
+    }
+  }, [product?.category, product?.subCategory]);
 
   // Récupération des commentaires et infos utilisateur
   useEffect(() => {
@@ -486,7 +512,7 @@ const Product = () => {
           {/* Left part (photos) - This will be sticky */}
           <div className='
               flex gap-4 flex-col-reverse lg:flex-row items-start
-              lg:h-[720px] lg:w-[648px] w-full
+              lg:h-[740px] lg:w-[720px] w-full
               lg:sticky lg:top-4 lg:self-start lg:mb-4 lg:pb-4 // Key changes for sticky
             '>
             <div className='flex lg:flex-col flex-row gap-2'>
@@ -695,13 +721,15 @@ const Product = () => {
         </div>
         <div className='flex flex-col gap-2'>
           <div className='text-2xl p-5 font-semibold'>You might be interested...</div>
-          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4'>
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n} className='flex flex-col gap-2'>
-                  <div className='h-[450px] bg-gray-200 dark:bg-gray-800'></div>
-                  <div className='text-lg font-semibold dark:text-gray-200'>Product Title</div>
-                  <div className='text-primary font-bold'>$49.99</div>
-                </div>
+          <div className='p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4'>
+            {relatedByCatProducts.map((n) => (
+              <a key={n.id} className='flex flex-col gap-2  cursor-pointer'
+                href={`/product/${n.id}/${n.variants[0]?.id}`} >
+                <div className='h-[450px] bg-gray-200 dark:bg-gray-800'> <img src={apiBaseUrl +  mainVariant(n)?.images.find((image) => image.mainImage)?.image || mainVariant(n)?.images[0]?.image} alt={n?.title} className='w-full h-full object-cover' /></div>
+                <div className='text-lg font-semibold dark:text-gray-200'>{n.title}</div>
+                <div className='block text-gray-500 text-base line-clamp-2 max-h-[72px]'>{n.short_desc}</div>
+                <div className='text-primary font-bold'>${mainVariant(n)?.price}</div>
+              </a>
               ))
     }
           </div>

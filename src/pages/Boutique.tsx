@@ -484,7 +484,7 @@ export const Boutique = () => {
             <span className="font-semibold text-secondary">
               {item.title}
             </span>
-            <div className="block text-gray-500 text-base line-clamp-2 max-h-20">
+            <div className="block text-gray-500 text-base line-clamp-2 max-h-[72px]">
               {item.short_desc}
             </div>
             <div
