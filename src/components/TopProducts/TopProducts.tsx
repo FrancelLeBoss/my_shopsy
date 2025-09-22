@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useEffect,useState } from 'react'
 import Image1 from '../../assets/shirt/shirt.png'
 import Image2 from '../../assets/shirt/shirt2.png'
 import Image3 from '../../assets/shirt/shirt3.png'
 import { IoStar } from 'react-icons/io5'
+import axiosInstance from '../../api/axiosInstance'
 
 const TopProducts = () => {
+    const [topProducts, setTopProducts] = useState<any[]>([])
 
     const ProductsData = [
         {
@@ -29,6 +31,15 @@ const TopProducts = () => {
             stars:4
         }
     ]
+
+    useEffect(() => {
+        // Fetch top-rated products from the backend API
+        axiosInstance
+        .get<any[]>(`api/ratings/best_rated/`)
+        .then((response) => setTopProducts(response.data))
+        .catch((error) => console.error("Error fetching top-rated products data:", error));
+        console.log("Top Products: ", topProducts);
+    }, []);
 
   return (
     <div className=""> 

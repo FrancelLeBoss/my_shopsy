@@ -301,7 +301,7 @@ export const Boutique = () => {
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-600 dark:text-gray-200 font-medium capitalize">
-          Home /{" "}
+          <Link className="hover:underline cursor-pointer" to="/">Home</Link> /{" "}
           {categoryDetails?.title ? (
             categoryDetails.title
           ) : (
@@ -442,7 +442,7 @@ export const Boutique = () => {
   {/* Product Grid */}
   <div
     className={`grid gap-3 ${
-      showFilters ? "w-3/4" : "w-full"
+      showFilters ? "xl:w-5/6 lg:w-4/5 w-3/4 " : "w-full"
     } grid-cols-1 sm:grid-cols-2 pl-4`}
   >
     {sortedProducts()?.map((item) => (

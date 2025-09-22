@@ -112,7 +112,7 @@ const Product = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const [product, setProduct] = useState<ProductType | null>(null);
   const [displayReviews, setDisplayReviews] = useState(false);
-  const [category, setCategory] = useState<string | null>(null);
+  const [category, setCategory] = useState<{ title: string, id: number , slug: string } | null>(null);
   const [productWished, setProductWished] = useState(false);
 
   // Fonction pour obtenir la variante sélectionnée
@@ -160,9 +160,9 @@ const Product = () => {
   // Récupération de la catégorie du produit
   useEffect(() => {
     if (product?.category) {
-      axiosInstance.get<{ title: string }>(`api/categories/${product.category}/`)
+      axiosInstance.get<{ title: string, id: number , slug: string }>(`api/categories/${product.category}/`)
         .then(response => {
-          setCategory(response.data.title);
+          setCategory(response.data);
         })
         .catch(error => console.error("Error fetching category data:", error));
     }
@@ -294,6 +294,23 @@ const Product = () => {
     //return (totalStars / comments.length).toFixed(1);
     return Math.round(totalStars / comments.length);
   }
+
+const sortRelatedProducts = (products: ProductType[], currentProduct: ProductType | null) => {
+  if (!currentProduct) return products;
+
+  return products.slice().sort((a, b) => {
+    // Priorité à la même subCategory
+    const aSameSubCat = a.subCategory === currentProduct.subCategory ? 1 : 0;
+    const bSameSubCat = b.subCategory === currentProduct.subCategory ? 1 : 0;
+
+    if (aSameSubCat !== bSameSubCat) {
+      return bSameSubCat - aSameSubCat; // Les produits de la même subCategory passent en premier
+    }
+
+    // Sinon, tri par nombre d'étoiles décroissant (propriété déjà présente)
+    return (b.id ?? 0) - (a.id ?? 0);
+  });
+};
 
   const fetchCart = async () => {
     if (!user?.id) {
@@ -503,7 +520,7 @@ const Product = () => {
     <div className='flex flex-col lg:gap-8'>
       <div className="bg-primary/40 py-3">
         <div className="text-xl text-secondary text-center font-semibold dark:text-gray-200">Product Details</div>
-        <div className="text-sm text-gray-500 text-center dark:text-gray-200">Home / {category || "Loading..."} / {product?.title}</div>
+        <div className="text-sm text-gray-500 text-center dark:text-gray-200"><Link className="hover:underline cursor-pointer" to="/">Home</Link> / <Link className="hover:underline cursor-pointer" to={`/category/${category?.slug}`}>{category?.title || "Loading..."}</Link>  / {product?.title}</div>
       </div>
       <div className='flex flex-col gap-2'>
         {/* MAIN PRODUCT CONTENT AREA: flex-row for desktop, column for mobile */}
@@ -721,18 +738,32 @@ const Product = () => {
         </div>
         <div className='flex flex-col gap-2'>
           <div className='text-2xl p-5 font-semibold'>You might be interested...</div>
-          <div className='p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4'>
-            {relatedByCatProducts.map((n) => (
-              <a key={n.id} className='flex flex-col gap-2  cursor-pointer'
-                href={`/product/${n.id}/${n.variants[0]?.id}`} >
-                <div className='h-[450px] bg-gray-200 dark:bg-gray-800'> <img src={apiBaseUrl +  mainVariant(n)?.images.find((image) => image.mainImage)?.image || mainVariant(n)?.images[0]?.image} alt={n?.title} className='w-full h-full object-cover' /></div>
-                <div className='text-lg font-semibold dark:text-gray-200'>{n.title}</div>
+          <div className='p-5 px-12 flex gap-4 mb-4 overflow-x-auto snap-x snap-mandatory'>
+    {
+        sortRelatedProducts(
+            relatedBySubCatProducts.length > 5 ? relatedBySubCatProducts : relatedByCatProducts,
+            product
+        )
+        .filter((p) => p.id !== product?.id).map((n) => (
+            <a 
+                key={n.id} 
+                className='flex flex-col gap-2 cursor-pointer flex-shrink-0 w-full sm:w-1/2 md:w-1/3 lg:w-1/4 snap-start' 
+                href={`/product/${n.id}/${n.variants[0]?.id}`} 
+            >
+                <div className='h-[450px] bg-gray-200 dark:bg-gray-800'>
+                    <img 
+                        src={apiBaseUrl + mainVariant(n)?.images.find((image) => image.mainImage)?.image || mainVariant(n)?.images[0]?.image} 
+                        alt={n?.title} 
+                        className='w-full h-full object-cover' 
+                    />
+                </div>
+                <div className='text-lg font-semibold dark:text-gray-200'>{n.title}</div>
                 <div className='block text-gray-500 text-base line-clamp-2 max-h-[72px]'>{n.short_desc}</div>
-                <div className='text-primary font-bold'>${mainVariant(n)?.price}</div>
-              </a>
-              ))
+                <div className='text-primary font-bold'>${mainVariant(n)?.price}</div>
+            </a>
+        ))
     }
-          </div>
+</div>
         </div>
       </div>
     </div>

@@ -18,6 +18,8 @@ import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import AccountActivation from "./pages/AccountActivation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Profile from "./pages/Profile";
+import Help from "./pages/Help";
 
 function App() {
   // Création d'une instance de QueryClient
@@ -77,6 +79,8 @@ function App() {
             <Route path="/activate" element={<AccountActivation />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/help" element={<Help />} />
             <Route
               path="*"
               element={<h1 className="text-center text-4xl">404 Not Found</h1>}
